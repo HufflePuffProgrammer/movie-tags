@@ -82,7 +82,7 @@ export default function SignupPage() {
               </div>
               <h3 className="mt-4 text-lg font-medium text-gray-900">Check your email</h3>
               <p className="mt-2 text-sm text-gray-600">
-                We've sent you a confirmation link at <strong>{email}</strong>. 
+                We&#39;ve sent you a confirmation link at <strong>{email}</strong>. 
                 Please check your email and click the link to activate your account.
               </p>
               <div className="mt-6">
