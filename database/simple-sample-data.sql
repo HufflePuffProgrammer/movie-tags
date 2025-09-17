@@ -5,13 +5,13 @@
 -- SAMPLE MOVIES
 -- =====================================================
 
-INSERT INTO public.movies (title, description, release_date, genre, director, runtime_minutes, imdb_id, tmdb_id) VALUES
+INSERT INTO public.movies (title, description, release_date, genre, director, runtime_minutes, imdb_id, tmdb_id, poster_url) VALUES
 -- Recent Popular Films
-('Everything Everywhere All at Once', 'A mind-bending multiverse adventure about a laundromat owner who must connect with parallel universe versions of herself to prevent a powerful being from destroying the multiverse.', '2022-03-25', 'Sci-Fi', 'Daniels', 139, 'tt6710474', 545611),
+('Everything Everywhere All at Once', 'A mind-bending multiverse adventure about a laundromat owner who must connect with parallel universe versions of herself to prevent a powerful being from destroying the multiverse.', '2022-03-25', 'Sci-Fi', 'Daniels', 139, 'tt6710474', 545611, 'https://www.themoviedb.org/t/p/w600_and_h900_bestv2/svXVRoRSu6zzFtCzkRsjZS7Lqpd.jpg'),
 
-('Top Gun: Maverick', 'After thirty years, Maverick is still pushing the envelope as a top naval aviator, but must confront ghosts of his past when he leads TOP GUN''s elite graduates on a mission that demands the ultimate sacrifice.', '2022-05-27', 'Action', 'Joseph Kosinski', 131, 'tt1745960', 361743),
+('Top Gun: Maverick', 'After thirty years, Maverick is still pushing the envelope as a top naval aviator, but must confront ghosts of his past when he leads TOP GUN''s elite graduates on a mission that demands the ultimate sacrifice.', '2022-05-27', 'Action', 'Joseph Kosinski', 131, 'tt1745960', 361743, 'https://www.themoviedb.org/t/p/w600_and_h900_bestv2/svXVRoRSu6zzFtCzkRsjZS7Lqpd.jpg'  ),
 
-('The Batman', 'When a sadistic serial killer begins murdering key political figures in Gotham, Batman is forced to investigate the city''s hidden corruption and question his family''s involvement.', '2022-03-04', 'Action', 'Matt Reeves', 176, 'tt1877830', 414906),
+('The Batman', 'When a sadistic serial killer begins murdering key political figures in Gotham, Batman is forced to investigate the city''s hidden corruption and question his family''s involvement.', '2022-03-04', 'Action', 'Matt Reeves', 176, 'tt1877830', 414906, 'https://www.themoviedb.org/t/p/w600_and_h900_bestv2/svXVRoRSu6zzFtCzkRsjZS7Lqpd.jpg'),
 
 ('Dune', 'Paul Atreides, a brilliant and gifted young man born into a great destiny beyond his understanding, must travel to the most dangerous planet in the universe to ensure the future of his family and his people.', '2021-10-22', 'Sci-Fi', 'Denis Villeneuve', 155, 'tt1160419', 438631),
 

@@ -3,9 +3,66 @@
 import { Search, Film, Star, Filter, User, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase-client";
+
+interface Movie {
+  id: number;
+  title: string;
+  description: string | null;
+  release_date: string | null;
+  poster_url: string | null;
+  genre: string | null;
+  director: string | null;
+  runtime_minutes: number | null;
+  imdb_id: string | null;
+  tmdb_id: number | null;
+}
 
 export default function Home() {
   const { user, signOut, loading } = useAuth();
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [moviesLoading, setMoviesLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('release_date');
+  
+  // Fetch movies from database
+  useEffect(() => {
+    async function fetchMovies() {
+      try {
+        const supabase = createClient();
+        let query = supabase
+          .from('movies')
+          .select('*');
+        
+        // Add search filter if query exists
+        if (searchQuery.trim()) {
+          query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,director.ilike.%${searchQuery}%`);
+        }
+        
+        // Add sorting
+        if (sortBy === 'release_date') {
+          query = query.order('release_date', { ascending: false });
+        } else if (sortBy === 'title') {
+          query = query.order('title', { ascending: true });
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error fetching movies:', error);
+        } else {
+          setMovies(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching movies:', error);
+      } finally {
+        setMoviesLoading(false);
+      }
+    }
+    
+    fetchMovies();
+  }, [searchQuery, sortBy]);
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -20,8 +77,7 @@ export default function Home() {
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#" className="text-gray-300 hover:text-white font-medium">Movies</a>
-              <a href="#" className="text-gray-300 hover:text-white font-medium">Categories</a>
+  
               <a href="#" className="text-gray-300 hover:text-white font-medium">My Tags</a>
             </nav>
 
@@ -32,6 +88,8 @@ export default function Home() {
                 <input
                   type="text"
                   placeholder="Search movies..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-4 py-2 w-64 rounded-md bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:border-yellow-500 focus:outline-none"
                 />
               </div>
@@ -80,36 +138,19 @@ export default function Home() {
         {/* Hero Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">New Movies</h2>
-          <p className="text-gray-600">Find your next movie to watch. Filter by genre, release year, or your personal tags.</p>
+          <p className="text-gray-600">Filter by category and tags.</p>
         </div>
 
         {/* Filters and Results */}
         <div className="flex gap-8">
           {/* Sidebar Filters */}
-          <aside className="w-64 flex-shrink-0">
+          <aside className="w-44 flex-shrink-0">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Filter className="w-4 h-4" />
                 Filters
               </h3>
               
-              {/* Release Year */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-700 mb-3">Release Year</h4>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min="1920"
-                    max="2025"
-                    defaultValue="2000"
-                    className="flex-1"
-                  />
-                </div>
-                <div className="flex justify-between text-sm text-gray-500 mt-1">
-                  <span>1920</span>
-                  <span>2025</span>
-                </div>
-              </div>
 
               {/* Categories */}
               <div className="mb-6">
@@ -124,35 +165,19 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* My Tags */}
-              <div>
-                <h4 className="font-medium text-gray-700 mb-3">My Tags</h4>
-                {user ? (
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-500 mb-2">Your personal tags:</p>
-                    <div className="space-y-1">
-                      <label className="flex items-center">
-                        <input type="checkbox" className="rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" />
-                        <span className="ml-2 text-sm text-gray-600">Favorites</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input type="checkbox" className="rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" />
-                        <span className="ml-2 text-sm text-gray-600">Watch Later</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input type="checkbox" className="rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" />
-                        <span className="ml-2 text-sm text-gray-600">Rewatchable</span>
-                      </label>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">
-                    <Link href="/login" className="text-yellow-600 hover:text-yellow-500">
-                      Sign in
-                    </Link>{' '}
-                    to use your personal tags
-                  </p>
-                )}</div>
+              {/* Tags */}
+             
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-700 mb-3">Tags</h4>
+                <div className="space-y-2">
+                  {['Premise', 'Character', 'Dialogue', 'Horror', 'Sci-Fi', 'Thriller'].map((tags) => (
+                    <label key={tags} className="flex items-center">
+                      <input type="checkbox" className="rounded border-gray-300 text-yellow-500 focus:ring-yellow-500" />
+                      <span className="ml-2 text-sm text-gray-600">{tags}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </aside>
 
@@ -160,47 +185,94 @@ export default function Home() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
-                <span className="text-gray-600">61 results</span>
+                <span className="text-gray-600">
+                  {moviesLoading ? 'Loading...' : `${movies.length} results`}
+                </span>
               </div>
-              <select className="border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-700">
-                <option>Sort by: Release Date</option>
-                <option>Sort by: Title</option>
-                <option>Sort by: Rating</option>
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 bg-white text-gray-700"
+              >
+                <option value="release_date">Sort by: Release Date</option>
+                <option value="title">Sort by: Title</option>
               </select>
             </div>
 
             {/* Movie Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Sample Movie Cards */}
-              {[
-                { title: "The Dark Knight", year: "2008", rating: "94", genre: "Action", poster: "/api/placeholder/200/300" },
-                { title: "Inception", year: "2010", rating: "87", genre: "Sci-Fi", poster: "/api/placeholder/200/300" },
-                { title: "Parasite", year: "2019", rating: "96", genre: "Thriller", poster: "/api/placeholder/200/300" },
-                { title: "Dune", year: "2021", rating: "85", genre: "Sci-Fi", poster: "/api/placeholder/200/300" },
-                { title: "Everything Everywhere All at Once", year: "2022", rating: "95", genre: "Comedy", poster: "/api/placeholder/200/300" },
-                { title: "Top Gun: Maverick", year: "2022", rating: "78", genre: "Action", poster: "/api/placeholder/200/300" },
-              ].map((movie, index) => (
-                <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="aspect-[2/3] bg-gray-200 relative">
-                    <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                      <Film className="w-12 h-12" />
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-1">{movie.title}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{movie.year} • {movie.genre}</p>
-                    <div className="flex items-center gap-2">
-                      <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
-                        {movie.rating}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="text-sm text-gray-600">CineFind Score</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {moviesLoading ? (
+                // Loading skeleton
+                Array.from({ length: 8 }).map((_, index) => (
+                  <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+                    <div className="aspect-[2/3] bg-gray-200"></div>
+                    <div className="p-4">
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded mb-2 w-2/3"></div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-8 bg-gray-200 rounded"></div>
+                        <div className="h-3 bg-gray-200 rounded w-20"></div>
                       </div>
                     </div>
                   </div>
+                ))
+              ) : movies.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <Film className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No movies found</p>
+                  {searchQuery && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      Try adjusting your search terms
+                    </p>
+                  )}
                 </div>
-              ))}
+              ) : (
+                movies.map((movie) => (
+                  <Link 
+                    key={movie.id} 
+                    href={`/movie/${movie.id}`}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer block"
+                  >
+                    <div className="aspect-[2/3] bg-gray-200 relative">
+                      {movie.poster_url ? (
+                        <img 
+                          src={movie.poster_url} 
+                          alt={movie.title} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`absolute inset-0 flex items-center justify-center text-gray-400 ${movie.poster_url ? 'hidden' : ''}`}>
+                        <Film className="w-10 h-10" />
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{movie.title}</h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown'} 
+                        {movie.genre && ` • ${movie.genre}`}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
+                          NEW
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                          <span className="text-sm text-gray-600">
+                            {movie.runtime_minutes ? `${movie.runtime_minutes}min` : 'Runtime TBD'}
+                          </span>
+                        </div>
+                      </div>
+                      {movie.director && (
+                        <p className="text-xs text-gray-500 mt-2">Directed by {movie.director}</p>
+                      )}
+                    </div>
+                  </Link>
+                ))
+              )}
             </div>
 
             {/* Load More */}
