@@ -1,35 +1,35 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
-import { useCategories } from '@/contexts/categories-context';
+import { ChevronDown } from 'lucide-react';
+import { useTags } from '@/contexts/tags-context';
 import { Database } from '@/types/database';
 
-type Category = Database['public']['Tables']['categories']['Row'];
+type Tag = Database['public']['Tables']['tags']['Row'];
 
-interface CategoryAutocompleteProps {
-  onSelect: (category: Category) => void;
+interface TagAutocompleteProps {
+  onSelect: (tag: Tag) => void;
   excludeIds?: number[];
   placeholder?: string;
   className?: string;
 }
 
-export default function CategoryAutocomplete({ 
+export default function TagAutocomplete({ 
   onSelect, 
   excludeIds = [], 
-  placeholder = "Type to search categories...",
+  placeholder = "Type to search tags...",
   className = ""
-}: CategoryAutocompleteProps) {
-  const { categories, loading, searchCategories } = useCategories();
+}: TagAutocompleteProps) {
+  const { tags, loading, searchTags } = useTags();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Filter out excluded categories and search
-  const availableCategories = categories.filter(cat => !excludeIds.includes(cat.id));
-  const filteredCategories = searchCategories(query).filter(cat => !excludeIds.includes(cat.id));
+  // Filter out excluded tags and search
+  const availableTags = tags.filter(tag => !excludeIds.includes(tag.id));
+  const filteredTags = searchTags(query).filter(tag => !excludeIds.includes(tag.id));
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -47,8 +47,8 @@ export default function CategoryAutocomplete({
     setTimeout(() => setIsOpen(false), 200);
   };
 
-  const handleCategorySelect = (category: Category) => {
-    onSelect(category);
+  const handleTagSelect = (tag: Tag) => {
+    onSelect(tag);
     setQuery('');
     setIsOpen(false);
     setHighlightedIndex(-1);
@@ -62,7 +62,7 @@ export default function CategoryAutocomplete({
       case 'ArrowDown':
         e.preventDefault();
         setHighlightedIndex(prev => 
-          prev < filteredCategories.length - 1 ? prev + 1 : prev
+          prev < filteredTags.length - 1 ? prev + 1 : prev
         );
         break;
       case 'ArrowUp':
@@ -71,8 +71,8 @@ export default function CategoryAutocomplete({
         break;
       case 'Enter':
         e.preventDefault();
-        if (highlightedIndex >= 0 && filteredCategories[highlightedIndex]) {
-          handleCategorySelect(filteredCategories[highlightedIndex]);
+        if (highlightedIndex >= 0 && filteredTags[highlightedIndex]) {
+          handleTagSelect(filteredTags[highlightedIndex]);
         }
         break;
       case 'Escape':
@@ -98,7 +98,7 @@ export default function CategoryAutocomplete({
       <div className={`relative ${className}`}>
         <input
           type="text"
-          placeholder="Loading categories..."
+          placeholder="Loading tags..."
           disabled
           className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
         />
@@ -127,30 +127,30 @@ export default function CategoryAutocomplete({
       {isOpen && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
           <div ref={listRef}>
-            {filteredCategories.length === 0 ? (
+            {filteredTags.length === 0 ? (
               <div className="px-3 py-2 text-gray-500 text-sm">
-                {query.trim() ? 'No categories found' : 'Start typing to search...'}
+                {query.trim() ? 'No tags found' : 'Start typing to search...'}
               </div>
             ) : (
-              filteredCategories.map((category, index) => (
+              filteredTags.map((tag, index) => (
                 <div
-                  key={category.id}
-                  onClick={() => handleCategorySelect(category)}
+                  key={tag.id}
+                  onClick={() => handleTagSelect(tag)}
                   className={`px-3 py-2 cursor-pointer flex items-center justify-between hover:bg-gray-50 ${
                     index === highlightedIndex ? 'bg-yellow-50 border-l-2 border-yellow-500' : ''
                   }`}
                 >
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900">{category.name}</div>
-                    {category.description && (
+                    <div className="font-medium text-gray-900">{tag.name}</div>
+                    {tag.description && (
                       <div className="text-xs text-gray-500 line-clamp-1 mt-1">
-                        {category.description}
+                        {tag.description}
                       </div>
                     )}
                   </div>
                   <div 
                     className="w-4 h-4 rounded-full ml-2 flex-shrink-0"
-                    style={{ backgroundColor: category.color }}
+                    style={{ backgroundColor: tag.color }}
                   />
                 </div>
               ))

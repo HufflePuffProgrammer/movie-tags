@@ -2,35 +2,28 @@
 
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
+import TagAutocomplete from './TagAutocomplete';
+import { Database } from '@/types/database';
 
-interface UserTag {
-  id: number;
-  tag_name: string;
-  color?: string;
+type Tag = Database['public']['Tables']['tags']['Row'];
+type UserMovieTag = Database['public']['Tables']['user_movie_tags']['Row'];
+
+interface UserTagWithDetails extends UserMovieTag {
+  tag: Tag;
 }
 
 interface TagsSectionProps {
-  tags: UserTag[];
-  onAddTag: (tagName: string) => Promise<void>;
-  onRemoveTag: (tagId: number) => Promise<void>;
+  tags: UserTagWithDetails[];
+  onAddTag: (tag: Tag) => Promise<void>;
+  onRemoveTag: (userMovieTagId: number) => Promise<void>;
 }
 
 export default function TagsSection({ tags, onAddTag, onRemoveTag }: TagsSectionProps) {
   const [showAddTag, setShowAddTag] = useState(false);
-  const [newTag, setNewTag] = useState('');
 
-  const handleAddTag = async () => {
-    if (!newTag.trim()) return;
-    
-    await onAddTag(newTag.trim());
-    setNewTag('');
+  const handleAddTag = async (tag: Tag) => {
+    await onAddTag(tag);
     setShowAddTag(false);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleAddTag();
-    }
   };
 
   return (
@@ -47,14 +40,17 @@ export default function TagsSection({ tags, onAddTag, onRemoveTag }: TagsSection
       </div>
       
       <div className="flex flex-wrap gap-2 mb-4">
-        {tags.map((tag) => (
+        {tags.map((userTag) => (
           <span
-            key={tag.id}
-            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${tag.color || 'bg-blue-100 text-blue-800'}`}
+            key={userTag.id}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium text-white"
+            style={{
+              backgroundColor: userTag.tag?.color || '#3B82F6'
+            }}
           >
-            {tag.tag_name}
+            {userTag.tag?.name}
             <button
-              onClick={() => onRemoveTag(tag.id)}
+              onClick={() => onRemoveTag(userTag.id)}
               className="ml-1 hover:bg-black/10 rounded-full p-0.5"
             >
               <X className="w-3 h-3" />
@@ -69,24 +65,14 @@ export default function TagsSection({ tags, onAddTag, onRemoveTag }: TagsSection
       </div>
 
       {showAddTag && (
-        <div className="flex gap-2 mb-4">
-          <input
-            type="text"
-            value={newTag}
-            onChange={(e) => setNewTag(e.target.value)}
-            placeholder="Enter tag name..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500"
-            onKeyPress={handleKeyPress}
-            autoFocus
+        <div className="space-y-3 mb-4">
+          <TagAutocomplete
+            onSelect={handleAddTag}
+            excludeIds={tags.map(userTag => userTag.tag_id)}
+            placeholder="Type to search storytelling tags..."
           />
           <button
-            onClick={handleAddTag}
-            className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 font-medium"
-          >
-            Add
-          </button>
-          <button
-            onClick={() => {setShowAddTag(false); setNewTag('');}}
+            onClick={() => setShowAddTag(false)}
             className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
           >
             Cancel

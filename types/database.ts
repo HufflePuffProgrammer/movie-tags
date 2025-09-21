@@ -126,6 +126,78 @@ export interface Database {
           created_at?: string
         }
       }
+      tags: {
+        Row: {
+          id: number
+          name: string
+          description: string | null
+          color: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          description?: string | null
+          color?: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          description?: string | null
+          color?: string
+          created_at?: string
+        }
+      }
+      user_movie_tags: {
+        Row: {
+          id: number
+          user_id: string
+          movie_id: number
+          tag_id: number
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          movie_id: number
+          tag_id: number
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          movie_id?: number
+          tag_id?: number
+          created_at?: string
+        }
+      }
+      user_notes: {
+        Row: {
+          id: number
+          user_id: string
+          movie_id: number
+          content: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          movie_id: number
+          content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          movie_id?: number
+          content?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

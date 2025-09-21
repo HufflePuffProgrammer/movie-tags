@@ -6,21 +6,16 @@ import { Database } from '@/types/database';
 
 type Category = Database['public']['Tables']['categories']['Row'];
 type UserMovieCategory = Database['public']['Tables']['user_movie_categories']['Row'];
+type Tag = Database['public']['Tables']['tags']['Row'];
+type UserMovieTag = Database['public']['Tables']['user_movie_tags']['Row'];
+type UserNote = Database['public']['Tables']['user_notes']['Row'];
 
 interface UserCategoryWithDetails extends UserMovieCategory {
   category: Category;
 }
 
-interface UserTag {
-  id: number;
-  tag_name: string;
-  color?: string;
-}
-
-interface UserNote {
-  id: number;
-  content: string;
-  created_at: string;
+interface UserTagWithDetails extends UserMovieTag {
+  tag: Tag;
 }
 
 interface NotificationState {
@@ -29,7 +24,7 @@ interface NotificationState {
 }
 
 export function useUserPersonalization(movieId: string, userId?: string) {
-  const [userTags, setUserTags] = useState<UserTag[]>([]);
+  const [userTags, setUserTags] = useState<UserTagWithDetails[]>([]);
   const [userCategories, setUserCategories] = useState<UserCategoryWithDetails[]>([]);
   const [userNotes, setUserNotes] = useState<UserNote[]>([]);
   const [notification, setNotification] = useState<NotificationState | null>(null);
@@ -56,22 +51,35 @@ export function useUserPersonalization(movieId: string, userId?: string) {
         setUserCategories(userMovieCategories || []);
       }
 
-      // Keep mock data for tags and notes for now (will implement later)
-      setUserTags([
-        { id: 1, tag_name: 'male rear nudity', color: 'bg-blue-100 text-blue-800' },
-        { id: 2, tag_name: 'cat', color: 'bg-green-100 text-green-800' },
-        { id: 3, tag_name: 'new york city', color: 'bg-purple-100 text-purple-800' },
-        { id: 4, tag_name: 'male nudity', color: 'bg-red-100 text-red-800' },
-        { id: 5, tag_name: 'psychological thriller', color: 'bg-orange-100 text-orange-800' }
-      ]);
+      // Fetch user's tags for this movie
+      const { data: userTags, error: userTagsError } = await supabase
+        .from('user_movie_tags')
+        .select(`
+          *,
+          tag:tags(*)
+        `)
+        .eq('user_id', userId)
+        .eq('movie_id', parseInt(movieId));
 
-      setUserNotes([
-        { 
-          id: 1, 
-          content: 'Great character development and unexpected plot twists. The cinematography really captures the gritty atmosphere of 90s NYC.',
-          created_at: '2024-01-15T10:30:00Z'
-        }
-      ]);
+      if (userTagsError) {
+        console.error('Error fetching user tags:', userTagsError);
+      } else {
+        setUserTags(userTags || []);
+      }
+
+      // Fetch user's notes for this movie
+      const { data: userNotes, error: userNotesError } = await supabase
+        .from('user_notes')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('movie_id', parseInt(movieId))
+        .order('created_at', { ascending: false });
+
+      if (userNotesError) {
+        console.error('Error fetching user notes:', userNotesError);
+      } else {
+        setUserNotes(userNotes || []);
+      }
     } catch (error) {
       console.error('Error fetching user personalization:', error);
     }
@@ -82,19 +90,88 @@ export function useUserPersonalization(movieId: string, userId?: string) {
   }, [movieId, userId]);
 
   // Tag operations
-  const addTag = async (tagName: string) => {
-    // Mock implementation - will be replaced with Supabase call
-    const newTagObj: UserTag = {
-      id: Date.now(),
-      tag_name: tagName,
-      color: 'bg-blue-100 text-blue-800'
-    };
+  const addTag = async (tag: Tag) => {
+    if (!userId || !movieId) return;
     
-    setUserTags([...userTags, newTagObj]);
+    try {
+      const supabase = createClient();
+      
+      const { data, error } = await supabase
+        .from('user_movie_tags')
+        .insert({
+          user_id: userId,
+          movie_id: parseInt(movieId),
+          tag_id: tag.id
+        } as any)
+        .select(`
+          *,
+          tag:tags(*)
+        `)
+        .single();
+
+      if (error) {
+        console.error('Error adding tag:', error);
+        if (error.code === '23505') { // Unique constraint violation
+          setNotification({
+            type: 'error',
+            message: 'You have already added this tag to this movie.'
+          });
+        } else {
+          setNotification({
+            type: 'error',
+            message: 'Failed to add tag. Please try again.'
+          });
+        }
+      } else {
+        // Refresh the user's tags (same pattern as categories)
+        fetchUserPersonalization();
+        setNotification({
+          type: 'success',
+          message: 'Tag added successfully!'
+        });
+      }
+    } catch (error) {
+      console.error('Error adding tag:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to add tag. Please try again.'
+      });
+    }
   };
 
-  const removeTag = async (tagId: number) => {
-    setUserTags(userTags.filter(tag => tag.id !== tagId));
+  const removeTag = async (userMovieTagId: number) => {
+    if (!userId) return;
+    
+    try {
+      const supabase = createClient();
+      
+      const { error } = await supabase
+        .from('user_movie_tags')
+        .delete()
+        .eq('id', userMovieTagId)
+        .eq('user_id', userId); // Additional security check
+      
+      if (error) {
+        console.error('Error removing tag:', error);
+        setNotification({
+          type: 'error',
+          message: 'Failed to remove tag. Please try again.'
+        });
+      } else {
+        // Update local state to remove the tag
+        setUserTags(userTags.filter(userTag => userTag.id !== userMovieTagId));
+        setNotification({
+          type: 'success',
+          message: 'Tag removed successfully!'
+        });
+      }
+    } catch (error) {
+      console.error('Error removing tag:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to remove tag. Please try again.'
+      });
+    }
   };
 
   // Category operations
@@ -181,17 +258,77 @@ export function useUserPersonalization(movieId: string, userId?: string) {
 
   // Note operations
   const addNote = async (content: string) => {
-    const newNoteObj: UserNote = {
-      id: Date.now(),
-      content: content,
-      created_at: new Date().toISOString()
-    };
+    if (!userId || !movieId) return;
     
-    setUserNotes([...userNotes, newNoteObj]);
+    try {
+      const supabase = createClient();
+      
+      const { data, error } = await supabase
+        .from('user_notes')
+        .insert({
+          user_id: userId,
+          movie_id: parseInt(movieId),
+          content: content
+        } as any)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding note:', error);
+        setNotification({
+          type: 'error',
+          message: 'Failed to add note. Please try again.'
+        });
+      } else {
+        // Refresh the user's data (same pattern as tags and categories)
+        fetchUserPersonalization();
+        setNotification({
+          type: 'success',
+          message: 'Note added successfully!'
+        });
+      }
+    } catch (error) {
+      console.error('Error adding note:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to add note. Please try again.'
+      });
+    }
   };
 
   const removeNote = async (noteId: number) => {
-    setUserNotes(userNotes.filter(note => note.id !== noteId));
+    if (!userId) return;
+    
+    try {
+      const supabase = createClient();
+      
+      const { error } = await supabase
+        .from('user_notes')
+        .delete()
+        .eq('id', noteId)
+        .eq('user_id', userId); // Additional security check
+      
+      if (error) {
+        console.error('Error removing note:', error);
+        setNotification({
+          type: 'error',
+          message: 'Failed to remove note. Please try again.'
+        });
+      } else {
+        // Update local state to remove the note
+        setUserNotes(userNotes.filter(note => note.id !== noteId));
+        setNotification({
+          type: 'success',
+          message: 'Note removed successfully!'
+        });
+      }
+    } catch (error) {
+      console.error('Error removing note:', error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to remove note. Please try again.'
+      });
+    }
   };
 
   return {
