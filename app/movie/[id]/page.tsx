@@ -11,6 +11,7 @@ import TagsSection from '@/components/TagsSection';
 import CategoriesSection from '@/components/CategoriesSection';
 import NotesSection from '@/components/NotesSection';
 import Notification from '@/components/Notification';
+import PublicMovieTagsAndCategories from '@/components/PublicMovieTagsAndCategories';
 
 export default function MovieDetailPage() {
   const params = useParams();
@@ -80,6 +81,11 @@ export default function MovieDetailPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Movie Header */}
         <MovieHeader movie={movie} />
+
+        {/* Community Tags & Categories Section */}
+        <div className="mb-8">
+          <PublicMovieTagsAndCategories movieId={movieId} />
+        </div>
 
         {/* User Personalization Section */}
         {user && (

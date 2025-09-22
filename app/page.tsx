@@ -9,8 +9,15 @@ import MovieGrid from "@/components/MovieGrid";
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('release_date');
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [selectedTags, setSelectedTags] = useState<number[]>([]);
   
-  const { movies, loading } = useMovies(searchQuery, sortBy);
+  const { movies, loading } = useMovies({
+    searchQuery,
+    sortBy,
+    categoryIds: selectedCategories,
+    tagIds: selectedTags
+  });
   return (
     <div className="min-h-screen bg-gray-50">
       <Header 
@@ -28,7 +35,12 @@ export default function Home() {
 
         {/* Filters and Results */}
         <div className="flex gap-8">
-          <FiltersSidebar />
+          <FiltersSidebar 
+            selectedCategories={selectedCategories}
+            selectedTags={selectedTags}
+            onCategoryChange={setSelectedCategories}
+            onTagChange={setSelectedTags}
+          />
           <MovieGrid 
             movies={movies}
             loading={loading}

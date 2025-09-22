@@ -24,7 +24,11 @@ export default function Header({ searchQuery, onSearchChange }: HeaderProps) {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-gray-300 hover:text-white font-medium">My Tags</a>
+            {user && (
+              <Link href="/my-tags" className="text-gray-300 hover:text-white font-medium">
+                My Tags
+              </Link>
+            )}
           </nav>
 
           {/* Search Bar */}

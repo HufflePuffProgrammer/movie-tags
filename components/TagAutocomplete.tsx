@@ -28,8 +28,7 @@ export default function TagAutocomplete({
   const listRef = useRef<HTMLDivElement>(null);
 
   // Filter out excluded tags and search
-  const availableTags = tags.filter(tag => !excludeIds.includes(tag.id));
-  const filteredTags = searchTags(query).filter(tag => !excludeIds.includes(tag.id));
+   const filteredTags = searchTags(query).filter(tag => !excludeIds.includes(tag.id));
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
