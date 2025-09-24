@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useCategories } from '@/contexts/categories-context';
 import { Database } from '@/types/database';
 
@@ -20,7 +20,7 @@ export default function CategoryAutocomplete({
   placeholder = "Type to search categories...",
   className = ""
 }: CategoryAutocompleteProps) {
-  const { categories, loading, searchCategories } = useCategories();
+  const { loading, searchCategories } = useCategories();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -28,7 +28,6 @@ export default function CategoryAutocomplete({
   const listRef = useRef<HTMLDivElement>(null);
 
   // Filter out excluded categories and search
-  const availableCategories = categories.filter(cat => !excludeIds.includes(cat.id));
   const filteredCategories = searchCategories(query).filter(cat => !excludeIds.includes(cat.id));
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

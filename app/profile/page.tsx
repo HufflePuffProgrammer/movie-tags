@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Mail, Camera, Save, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
@@ -54,9 +54,9 @@ export default function ProfilePage() {
     if (user) {
       loadProfile()
     }
-  }, [user])
+  }, [user, loadProfile])
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -91,7 +91,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
 
   const createProfile = async () => {
     try {

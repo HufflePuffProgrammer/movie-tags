@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Film, Mail, Lock, Eye, EyeOff, User } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
@@ -18,7 +17,6 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false)
   
   const { signUp } = useAuth()
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,10 +45,10 @@ export default function SignupPage() {
     }
 
     try {
-      const { data, error } = await signUp(email, password, displayName)
-      if (error) {
-        console.error('Signup error:', error)
-        setError(`Signup failed: ${error.message}`)
+      const { data, error: signUpError } = await signUp(email, password, displayName)
+      if (signUpError) {
+        console.error('Signup error:', signUpError)
+        setError(`Signup failed: ${signUpError.message}`)
       } else if (data.user) {
         console.log('Signup successful:', data.user)
         setSuccess(true)

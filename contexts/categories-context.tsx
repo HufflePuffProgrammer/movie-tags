@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import { Database } from '@/types/database';
 
@@ -21,11 +21,27 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async (forceRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
       
+      // Check localStorage cache first (unless forcing refresh)
+      if (!forceRefresh) {
+        const cached = localStorage.getItem('movie-categories');
+        const cacheTime = localStorage.getItem('movie-categories-timestamp');
+        
+        // Use cache if less than 24 hours old (categories rarely change)
+        if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 24 * 60 * 60 * 1000) {
+          const cachedCategories = JSON.parse(cached);
+          setCategories(cachedCategories);
+          setLoading(false);
+          console.log('Categories loaded from cache:', cachedCategories.length);
+          return;
+        }
+      }
+      
+      // Fetch from database
       const supabase = createClient();
       const { data, error: fetchError } = await supabase
         .from('categories')
@@ -36,8 +52,14 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching categories:', fetchError);
         setError('Failed to load categories');
       } else {
-        setCategories(data || []);
-        console.log('Categories loaded:', data?.length || 0);
+        const categories = data || [];
+        setCategories(categories);
+        
+        // Cache the result
+        localStorage.setItem('movie-categories', JSON.stringify(categories));
+        localStorage.setItem('movie-categories-timestamp', Date.now().toString());
+        
+        console.log('Categories loaded from database and cached:', categories.length);
       }
     } catch (err) {
       console.error('Categories fetch error:', err);
@@ -45,13 +67,13 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const refreshCategories = async () => {
-    await fetchCategories();
-  };
+  const refreshCategories = useCallback(async () => {
+    await fetchCategories(true); // Force refresh from database
+  }, [fetchCategories]);
 
-  const searchCategories = (query: string): Category[] => {
+  const searchCategories = useCallback((query: string): Category[] => {
     if (!query.trim()) return categories;
     
     const searchTerm = query.toLowerCase().trim();
@@ -59,19 +81,19 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
       category.name.toLowerCase().includes(searchTerm) ||
       (category.description && category.description.toLowerCase().includes(searchTerm))
     );
-  };
+  }, [categories]);
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
-  const value: CategoriesContextType = {
+  const value = useMemo(() => ({
     categories,
     loading,
     error,
     refreshCategories,
     searchCategories
-  };
+  }), [categories, loading, error, refreshCategories, searchCategories]);
 
   return (
     <CategoriesContext.Provider value={value}>

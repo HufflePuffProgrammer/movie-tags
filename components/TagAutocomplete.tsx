@@ -20,7 +20,7 @@ export default function TagAutocomplete({
   placeholder = "Type to search tags...",
   className = ""
 }: TagAutocompleteProps) {
-  const { tags, loading, searchTags } = useTags();
+  const { loading, searchTags } = useTags();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
