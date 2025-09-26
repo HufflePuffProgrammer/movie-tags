@@ -49,51 +49,7 @@ export default function ProfilePage() {
     }
   }, [user, authLoading, router])
 
-  // Load profile data
-  useEffect(() => {
-    if (user) {
-      loadProfile()
-    }
-  }, [user, loadProfile])
-
-  const loadProfile = useCallback(async () => {
-    try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .single()
-
-      if (error) {
-        console.error('Error loading profile:', error)
-        
-        // If profile doesn't exist, create one
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found, creating new profile...')
-          await createProfile()
-        } else {
-          console.error('Profile loading error details:', error)
-          setError(`Failed to load profile: ${error.message}`)
-        }
-      } else {
-        console.log('Profile loaded successfully:', data)
-        console.log('Avatar URL from database:', data.avatar_url)
-        setProfile(data)
-        setUserName(data.user_name || '')
-        setFullName(data.full_name || '')
-        setBio(data.bio || '')
-        setAvatarUrlWithDebug(data.avatar_url || '')
-      }
-    } catch (err) {
-      console.error('Profile loading error:', err)
-      setError('An unexpected error occurred')
-    } finally {
-      setLoading(false)
-    }
-  }, [user?.id])
-
-  const createProfile = async () => {
+  const createProfile = useCallback(async () => {
     try {
       const newProfile = {
         id: user?.id,
@@ -117,6 +73,12 @@ export default function ProfilePage() {
         setError('Failed to create profile')
       } else {
         console.log('Profile created successfully:', data)
+        
+        // Cache the new profile
+        if (user?.id) {
+          sessionStorage.setItem(`user-profile-${user.id}`, JSON.stringify(data))
+        }
+        
         setProfile(data)
         setUserName(data.user_name || '')
         setFullName(data.full_name || '')
@@ -127,7 +89,79 @@ export default function ProfilePage() {
       console.error('Profile creation error:', err)
       setError('Failed to create profile')
     }
-  }
+  }, [user?.id, user?.user_metadata, user?.email])
+  
+  const loadProfile = useCallback(async (forceRefresh = false) => {
+    try {
+      setLoading(true)
+      
+      // Check sessionStorage cache first (unless forcing refresh)
+      if (!forceRefresh && user?.id) {
+        const cached = sessionStorage.getItem(`user-profile-${user.id}`)
+        if (cached) {
+          const cachedProfile = JSON.parse(cached)
+          setProfile(cachedProfile)
+          setUserName(cachedProfile.user_name || '')
+          setFullName(cachedProfile.full_name || '')
+          setBio(cachedProfile.bio || '')
+          setAvatarUrlWithDebug(cachedProfile.avatar_url || '')
+          setLoading(false)
+          console.log('Profile loaded from session cache')
+          return
+        }
+      }
+      
+      // Fetch from database
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single()
+
+      if (error) {
+        console.error('Error loading profile:', error)
+        
+        // If profile doesn't exist, create one
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, creating new profile...')
+          await createProfile()
+        } else {
+          console.error('Profile loading error details:', error)
+          setError(`Failed to load profile: ${error.message}`)
+        }
+      } else {
+        console.log('Profile loaded from database:', data)
+        console.log('Avatar URL from database:', data.avatar_url)
+        
+        // Cache the profile data
+        if (user?.id) {
+          sessionStorage.setItem(`user-profile-${user.id}`, JSON.stringify(data))
+        }
+        
+        setProfile(data)
+        setUserName(data.user_name || '')
+        setFullName(data.full_name || '')
+        setBio(data.bio || '')
+        setAvatarUrlWithDebug(data.avatar_url || '')
+      }
+    } catch (err) {
+      console.error('Profile loading error:', err)
+      setError('An unexpected error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.id, createProfile])
+
+  // Load profile data
+  useEffect(() => {
+    if (user) {
+      loadProfile()
+    }
+  }, [user, loadProfile])
+
+  
+
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -180,7 +214,12 @@ export default function ProfilePage() {
       } else {
         console.log('Profile update successful')
         setSuccess('Profile updated successfully!')
-        loadProfile() // Reload to get updated data
+        
+        // Clear cache and reload fresh data
+        if (user?.id) {
+          sessionStorage.removeItem(`user-profile-${user.id}`)
+        }
+        loadProfile(true) // Force refresh from database
       }
     } catch (err) {
       console.error('Profile update error:', err)
