@@ -44,6 +44,10 @@ npm install
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+
+# TMDB API Configuration (for smart movie search)
+# Get your API key from: https://www.themoviedb.org/settings/api
+TMDB_API_KEY=your-tmdb-api-key-here
 ```
 
 ### 3. Set up Database Schema
@@ -120,13 +124,28 @@ All user data is protected by RLS policies ensuring privacy.
 - **Login/Signup** - Authentication pages with form validation
 - **Movie Cards** - Display movie information and ratings
 
-## Next Steps
+## Current Features Status
 
-- [ ] Implement database schema
-- [ ] Add movie search functionality
-- [ ] Create movie detail pages
-- [ ] Build admin interface
-- [ ] Add sample data for testing
+- [x] **Database Schema** - Complete with profiles, movies, tags, categories, and user relationships
+- [x] **Smart Movie Search** - Autocomplete search with local database + TMDB fallback
+- [x] **Personal Tagging System** - Users can tag movies with admin-curated tags
+- [x] **Categories System** - Organize movies with admin-defined categories
+- [x] **Admin Interface** - Comprehensive admin dashboard for managing tags and categories
+- [x] **User Authentication** - Complete signup/login with Supabase Auth
+- [x] **Personal Dashboard** - "My Tags" page showing user's movie activity
+- [x] **Responsive Design** - Clean, Metacritic-inspired UI
+- [x] **TMDB Integration** - Add movies from The Movie Database with one click
+
+## Potential Enhancements
+
+- [ ] Individual movie detail pages with enhanced tagging interface
+- [ ] User management admin page
+- [ ] Movie management admin page (add/edit movies)
+- [ ] Advanced filtering (by year, rating, runtime)
+- [ ] Movie recommendations based on user tags
+- [ ] Social features (public profiles, shared lists)
+- [ ] Movie ratings and reviews
+- [ ] Watchlist functionality
 
 ## Contributing
 

@@ -16,19 +16,24 @@ Replace with your actual Supabase project values from Settings > API.
 1. Go to your Supabase dashboard
 2. Click on "SQL Editor" in the sidebar
 3. Click "New Query"
-4. Copy and paste the entire contents of `database/simple-schema.sql`
+4. Copy and paste the entire contents of `database/complete-schema.sql` (recommended) or `database/simple-schema.sql` (basic setup)
 5. Click "Run" to execute
 
 This will create:
-- `profiles` table
-- `movies` table  
+- `profiles` table (user profiles)
+- `movies` table (movie catalog)
+- `categories` table (admin-curated categories)
+- `tags` table (admin-curated tags)
+- `user_movie_categories` table (user's movie categorizations)
+- `user_movie_tags` table (user's movie tags)
+- `user_notes` table (user's movie notes)
 - Automatic profile creation trigger
-- Row Level Security policies
+- Row Level Security policies for all tables
 
 ## Step 3: Add sample data (optional)
 
 1. Create another "New Query" in SQL Editor
-2. Copy and paste the contents of `database/simple-sample-data.sql`
+2. Copy and paste the contents of `database/sample-data.sql` (includes categories, tags, and movies)
 3. Click "Run" to add sample movies
 
 ## Step 4: Test the setup
