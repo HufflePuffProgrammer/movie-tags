@@ -6,12 +6,12 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { useMovieData } from '@/hooks/useMovieData';
 import { useUserPersonalization } from '@/hooks/useUserPersonalization';
-import MovieHeader from '@/components/MovieHeader';
-import TagsSection from '@/components/TagsSection';
-import CategoriesSection from '@/components/CategoriesSection';
-import NotesSection from '@/components/NotesSection';
+import MovieHeader from '@/components/movie/MovieHeader';
+import TagsSection from '@/components/tag/TagsSection';
+import CategoriesSection from '@/components/category/CategoriesSection';
+import NotesSection from '@/components/note/NotesSection';
 import Notification from '@/components/Notification';
-import PublicMovieTagsAndCategories from '@/components/PublicMovieTagsAndCategories';
+import PublicMovieTagsAndCategories from '@/components/tag/PublicMovieTagsAndCategories';
 
 export default function MovieDetailPage() {
   const params = useParams();

@@ -1,7 +1,7 @@
 'use client'
 
 import { Film } from 'lucide-react';
-import MovieCard from './MovieCard';
+import MovieCard from '@/components/movie/MovieCard';
 import { Movie } from '@/types/movie';
 
 interface MovieGridProps {
@@ -47,7 +47,7 @@ export default function MovieGrid({
               <div className="p-4">
                 <div className="h-4 bg-gray-200 rounded mb-2"></div>
                 <div className="h-3 bg-gray-200 rounded mb-2 w-2/3"></div>
-                <div className="flex items-center gap-2">
+                <div className="flex itemsCenter gap-2">
                   <div className="h-6 w-8 bg-gray-200 rounded"></div>
                   <div className="h-3 bg-gray-200 rounded w-20"></div>
                 </div>
@@ -82,3 +82,4 @@ export default function MovieGrid({
     </div>
   );
 }
+
