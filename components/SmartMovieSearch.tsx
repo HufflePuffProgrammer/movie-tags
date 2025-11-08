@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X, Plus, Calendar, Clock, Star, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 
 interface LocalMovie {
   id: number;
@@ -41,6 +42,7 @@ interface SmartMovieSearchProps {
   placeholder?: string;
   showAddButton?: boolean;
   className?: string;
+  redirectToResults?: boolean; // New prop to control behavior
 }
 
 export default function SmartMovieSearch({
@@ -48,9 +50,11 @@ export default function SmartMovieSearch({
   onMovieAdded,
   placeholder = "Search movies...",
   showAddButton = true,
-  className = ""
+  className = "",
+  redirectToResults = false
 }: SmartMovieSearchProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResults>({
     localResults: [],
@@ -113,6 +117,9 @@ export default function SmartMovieSearch({
 
   // Handle input changes with debouncing
   useEffect(() => {
+    // Skip debounced search if we're in redirect mode
+    if (redirectToResults) return;
+
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -126,10 +133,32 @@ export default function SmartMovieSearch({
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query, debouncedSearch]);
+  }, [query, debouncedSearch, redirectToResults]);
+
+  // Handle search submission
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (query.trim().length < 2) return;
+
+    if (redirectToResults) {
+      // Navigate to results page with query
+      console.log('🔍 SmartMovieSearch: Redirecting to results page with query:', query);
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
+  };
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (redirectToResults) {
+      // In redirect mode, only handle Enter for search submission
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSearchSubmit();
+      }
+      return;
+    }
+
+    // Original dropdown navigation logic
     if (!isOpen) return;
 
     const totalResults = results.localResults.length + results.tmdbResults.length;
@@ -293,39 +322,75 @@ export default function SmartMovieSearch({
       )}
 
       {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-        <input
-          ref={searchRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => query.length >= 2 && setIsOpen(true)}
-          placeholder={placeholder}
-          className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg text-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-900"
-        />
-        {query && (
+      {redirectToResults ? (
+        // Form mode for results page navigation
+        <form onSubmit={handleSearchSubmit} className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            ref={searchRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg text-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-900"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('');
+                searchRef.current?.focus();
+              }}
+              className="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
           <button
-            onClick={() => {
-              setQuery('');
-              setIsOpen(false);
-              searchRef.current?.focus();
-            }}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            type="submit"
+            disabled={query.trim().length < 2}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <X className="w-5 h-5" />
+            <Search className="w-5 h-5" />
           </button>
-        )}
-        {loading && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-500"></div>
-          </div>
-        )}
-      </div>
+        </form>
+      ) : (
+        // Original dropdown mode
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            ref={searchRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => query.length >= 2 && setIsOpen(true)}
+            placeholder={placeholder}
+            className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg text-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-900"
+          />
+          {query && (
+            <button
+              onClick={() => {
+                setQuery('');
+                setIsOpen(false);
+                searchRef.current?.focus();
+              }}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+          {loading && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-500"></div>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Dropdown Results */}
-      {isOpen && (results.localResults.length > 0 || results.tmdbResults.length > 0 || results.error) && (
+      {/* Dropdown Results - Only show in dropdown mode */}
+      {!redirectToResults && isOpen && (results.localResults.length > 0 || results.tmdbResults.length > 0 || results.error) && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
           {/* Local Results Section */}
           {results.localResults.length > 0 && (

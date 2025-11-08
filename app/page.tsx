@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Search, X } from "lucide-react";
 import { useMovies } from "@/hooks/useMovies";
-import Header from "@/components/Header";
-import FiltersSidebar from "@/components/FiltersSidebar";
-import MovieGrid from "@/components/MovieGrid";
+import Header from "@/components/layout/Header";
+import FiltersSidebar from "@/components/layout/FiltersSidebar";
+import MovieGrid from "@/components/movie/MovieGrid";
 import SmartMovieSearch from "@/components/SmartMovieSearch";
 
 export default function Home() {
@@ -40,15 +40,7 @@ export default function Home() {
             </label>
             <SmartMovieSearch
               placeholder="Search by title, director, or description..."
-              onMovieSelect={(movie) => {
-                // When a local movie is selected, set it as the search query
-                setSearchQuery(movie.title);
-              }}
-              onMovieAdded={(movie) => {
-                // When a movie is added from TMDB, refresh the movie list
-                // The useMovies hook will automatically pick up the new movie
-                console.log('Movie added:', movie.title);
-              }}
+              redirectToResults={true}
             />
             {searchQuery && (
               <p className="mt-2 text-sm text-gray-600">

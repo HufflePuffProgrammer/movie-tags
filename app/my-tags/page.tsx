@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { ArrowLeft, Tag as TagIcon, Film } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserActivity } from '@/hooks/useUserActivity';
-import MyTagsStats from '@/components/MyTagsStats';
-import MyTagsControls from '@/components/MyTagsControls';
-import MovieActivityCard from '@/components/MovieActivityCard';
-import MyTagsEmptyState from '@/components/MyTagsEmptyState';
-import MyTagsResultsHeader from '@/components/MyTagsResultsHeader';
+import MyTagsStats from '@/components/tag/MyTagsStats';
+import MyTagsControls from '@/components/tag/MyTagsControls';
+import MovieActivityCard from '@/components/movie/MovieActivityCard';
+import MyTagsEmptyState from '@/components/tag/MyTagsEmptyState';
+import MyTagsResultsHeader from '@/components/tag/MyTagsResultsHeader';
 
 export default function MyTagsPage() {
   const { user } = useAuth();
