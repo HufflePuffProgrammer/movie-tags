@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { Search, X, Plus, Calendar, Clock, Star, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
@@ -69,7 +70,7 @@ export default function SmartMovieSearch({
   
   const searchRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced search function
   const debouncedSearch = useCallback(async (searchQuery: string) => {
@@ -407,7 +408,7 @@ export default function SmartMovieSearch({
                   }`}
                 >
                   {movie.poster_url ? (
-                    <img
+                    <Image
                       src={movie.poster_url}
                       alt={movie.title}
                       className="w-12 h-16 object-cover rounded flex-shrink-0"
@@ -465,7 +466,7 @@ export default function SmartMovieSearch({
                     }`}
                   >
                     {movie.poster_path ? (
-                      <img
+                      <Image
                         src={movie.poster_path}
                         alt={movie.title}
                         className="w-12 h-16 object-cover rounded flex-shrink-0"
@@ -534,7 +535,7 @@ export default function SmartMovieSearch({
           {!loading && !results.error && results.localResults.length === 0 && results.tmdbResults.length === 0 && query.length >= 2 && (
             <div className="px-4 py-8 text-center text-gray-500">
               <Search className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-              <p>No movies found for "{query}"</p>
+              <p>No movies found for &quot;{query}&quot;</p>
             </div>
           )}
         </div>

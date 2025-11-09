@@ -6,8 +6,12 @@ import { ArrowLeft, Tag, Plus, Edit2, Trash2, Save, X, Search } from 'lucide-rea
 import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase-client';
 import { Database } from '@/types/database';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 type Tag = Database['public']['Tables']['tags']['Row'];
+type TagInsert = Database['public']['Tables']['tags']['Insert'];
+type TagUpdate = Database['public']['Tables']['tags']['Update'];
+type TagUsageRow = Database['public']['Tables']['user_movie_tags']['Row'];
 
 interface TagFormData {
   name: string;
@@ -54,7 +58,7 @@ export default function TagsManagementPage() {
   const fetchTags = async () => {
     try {
       setLoading(true);
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
       const { data, error } = await supabase
         .from('tags')
         .select('*')
@@ -75,7 +79,7 @@ export default function TagsManagementPage() {
 
   const fetchTagUsage = async () => {
     try {
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
       const { data, error } = await supabase
         .from('user_movie_tags')
         .select('tag_id')
@@ -85,7 +89,8 @@ export default function TagsManagementPage() {
 
       // Count usage for each tag
       const usage: Record<number, number> = {};
-      data?.forEach((item: any) => {
+      (data ?? []).forEach((item: Pick<TagUsageRow, 'tag_id'>) => {
+        if (item.tag_id == null) return;
         usage[item.tag_id] = (usage[item.tag_id] || 0) + 1;
       });
       
@@ -134,14 +139,15 @@ export default function TagsManagementPage() {
     }
 
     try {
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
+      const payload: TagInsert = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || null,
+        color: formData.color
+      };
       const { data, error } = await supabase
         .from('tags')
-        .insert({
-          name: formData.name.trim(),
-          description: formData.description.trim() || null,
-          color: formData.color
-        } as any)
+        .insert(payload as never)
         .select()
         .single();
 
@@ -190,7 +196,7 @@ export default function TagsManagementPage() {
     }
 
     try {
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
       // First, let's verify the tag exists
       const { data: existingTag } = await supabase
         .from('tags')
@@ -200,13 +206,15 @@ export default function TagsManagementPage() {
       
       console.log('Existing tag before update:', existingTag);
       
+      const updatePayload: TagUpdate = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || null,
+        color: formData.color
+      };
+
       const { data, error } = await supabase
         .from('tags')
-        .update({
-          name: formData.name.trim(),
-          description: formData.description.trim() || null,
-          color: formData.color
-        } as any)
+        .update(updatePayload as never)
         .eq('id', editingTag.id)
         .select();
         

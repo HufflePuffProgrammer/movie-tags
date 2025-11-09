@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Mail, Camera, Save, ArrowLeft } from 'lucide-react'
+import Image from 'next/image'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 
@@ -270,7 +271,7 @@ export default function ProfilePage() {
               <div className="relative">
                 <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                   {avatarUrl && !avatarError ? (
-                    <img 
+                    <Image 
                       src={avatarUrl} 
                       alt="Profile1" 
                       className="w-full h-full object-cover"

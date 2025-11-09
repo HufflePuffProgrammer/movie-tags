@@ -2,10 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Film, Plus, Edit2, Trash2, Save, X, Search, Calendar } from 'lucide-react';
+import { ArrowLeft, Film, Plus, Edit2, Trash2, Save, X, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase-client';
 import { Movie } from '@/types/movie';
+import { Database } from '@/types/database';
+import { SupabaseClient } from '@supabase/supabase-js';
+
+type MovieInsertPayload = Database['public']['Tables']['movies']['Insert'];
+type MovieUpdatePayload = Database['public']['Tables']['movies']['Update'];
 
 interface MovieFormData {
   title: string;
@@ -58,7 +63,7 @@ export default function MoviesManagementPage() {
   const fetchMovies = async () => {
     try {
       setLoading(true);
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
       const { data, error } = await supabase
         .from('movies')
         .select('*')
@@ -89,9 +94,9 @@ export default function MoviesManagementPage() {
     }
 
     try {
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
       
-      const movieData = {
+      const movieInsert: MovieInsertPayload = {
         title: formData.title.trim(),
         description: formData.description.trim() || null,
         director: formData.director.trim() || null,
@@ -105,9 +110,10 @@ export default function MoviesManagementPage() {
 
       if (editingMovie) {
         // Update existing movie
+        const movieUpdate: MovieUpdatePayload = movieInsert;
         const { error } = await supabase
           .from('movies')
-          .update(movieData)
+          .update(movieUpdate as never)
           .eq('id', editingMovie.id);
 
         if (error) throw error;
@@ -120,7 +126,7 @@ export default function MoviesManagementPage() {
         // Create new movie
         const { error } = await supabase
           .from('movies')
-          .insert([movieData]);
+          .insert([movieInsert] as never);
 
         if (error) throw error;
 

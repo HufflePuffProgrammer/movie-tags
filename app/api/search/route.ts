@@ -18,7 +18,7 @@ interface TMDBMovie {
   vote_average: number;
   genre_ids: number[];
 }
-
+/* place holder for local movie
 interface LocalMovie {
   id: number;
   title: string;
@@ -32,13 +32,7 @@ interface LocalMovie {
   tmdb_id: number | null;
   created_at: string;
 }
-
-interface SearchResult {
-  localResults: LocalMovie[];
-  tmdbResults: TMDBMovie[];
-  hasMore: boolean;
-}
-
+*/
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -110,12 +104,16 @@ export async function GET(request: NextRequest) {
       throw new Error(`TMDB API error: ${tmdbResponse.status}`);
     }
 
-    const tmdbData = await tmdbResponse.json();
+    const tmdbData: {
+      total_results: number;
+      total_pages: number;
+      results?: TMDBMovie[];
+    } = await tmdbResponse.json();
     console.log('📥 API /search: TMDB API returned:', {
       totalResults: tmdbData.total_results,
       totalPages: tmdbData.total_pages,
       resultsCount: tmdbData.results?.length || 0,
-      firstFewTitles: tmdbData.results?.slice(0, 3).map((m: any) => m.title) || []
+      firstFewTitles: tmdbData.results?.slice(0, 3).map((m) => m.title) || []
     });
     
     // Step 4: Filter out movies that already exist in our database
@@ -131,7 +129,7 @@ export async function GET(request: NextRequest) {
         .select('tmdb_id')
         .in('tmdb_id', tmdbIds);
       
-      const existingTmdbIds = new Set(existingMovies?.map(m => m.tmdb_id) || []);
+      const existingTmdbIds = new Set(existingMovies?.map((m) => m.tmdb_id) || []);
       console.log('📊 API /search: Found existing TMDB IDs in database:', Array.from(existingTmdbIds));
       
       // Filter out movies that already exist
@@ -170,25 +168,4 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Rate limiting helper (simple in-memory store for demo)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const windowMs = 10 * 1000; // 10 seconds
-  const maxRequests = 40; // TMDB free tier limit
-  
-  const current = rateLimitStore.get(ip);
-  
-  if (!current || now > current.resetTime) {
-    rateLimitStore.set(ip, { count: 1, resetTime: now + windowMs });
-    return true;
-  }
-  
-  if (current.count >= maxRequests) {
-    return false;
-  }
-  
-  current.count++;
-  return true;
-}
+// TODO: Consider re-introducing rate limiting if external API quotas become an issue.

@@ -2,24 +2,13 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
-import { Settings, Database, Users, Tag, Film, ArrowLeft } from 'lucide-react';
+import { Settings, ArrowLeft } from 'lucide-react';
 
 export default function AdminPage() {
   const { user } = useAuth();
 
   // Simple admin check (you can make this more sophisticated)
   const isAdmin = user?.email?.includes('admin') || user?.email === 'testuser02@email.com';
-  console.log('hello');
-
-  var foo = 10;
-function bar(foo){
-    foo=20;
-    console.log('bar');
-    console.log(foo);
-}
-bar(foo);
-  console.log(foo);
-
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

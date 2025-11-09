@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase-client';
 import { useAuth } from '@/contexts/auth-context';
 import Link from 'next/link';
 import { ArrowLeft, Tag, X, Search, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Database } from '@/types/database';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 interface Category {
   id: number;
@@ -17,6 +19,10 @@ interface Category {
 interface CategoryUsage {
   [categoryId: number]: number;
 }
+
+type CategoryInsert = Database['public']['Tables']['categories']['Insert'];
+type CategoryUpdate = Database['public']['Tables']['categories']['Update'];
+type CategoryUsageRow = Database['public']['Tables']['user_movie_categories']['Row'];
 
 export default function CategoriesManagementPage() {
   const { user } = useAuth();
@@ -52,7 +58,7 @@ export default function CategoriesManagementPage() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
       const { data, error } = await supabase
         .from('categories')
         .select('*')
@@ -80,7 +86,7 @@ export default function CategoriesManagementPage() {
 
   const fetchCategoryUsage = async () => {
     try {
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
       const { data, error } = await supabase
         .from('user_movie_categories')
         .select('category_id');
@@ -91,9 +97,9 @@ export default function CategoriesManagementPage() {
       }
 
       const usage: CategoryUsage = {};
-      data?.forEach((item: any) => {
-        const categoryId = item.category_id;
-        usage[categoryId] = (usage[categoryId] || 0) + 1;
+      (data ?? []).forEach((item: Pick<CategoryUsageRow, 'category_id'>) => {
+        if (item.category_id == null) return;
+        usage[item.category_id] = (usage[item.category_id] || 0) + 1;
       });
 
       setCategoryUsage(usage);
@@ -130,15 +136,15 @@ export default function CategoriesManagementPage() {
 
   const handleCreate = async () => {
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
+      const supabase: SupabaseClient<Database> = createClient();
+      const payload: CategoryInsert = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || null,
+        color: formData.color
+      };
+      const { error } = await supabase
         .from('categories')
-        .insert({
-          name: formData.name.trim(),
-          description: formData.description.trim() || null,
-          color: formData.color
-        } as any)
-        .select();
+        .insert(payload as never);
 
       if (error) {
         if (error.code === '23505') {
@@ -175,15 +181,17 @@ export default function CategoriesManagementPage() {
     if (!editingCategory) return;
 
     try {
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
       
-      const { data, error } = await supabase
+      const updatePayload: CategoryUpdate = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || null,
+        color: formData.color
+      };
+
+      const { error } = await supabase
         .from('categories')
-        .update({
-          name: formData.name.trim(),
-          description: formData.description.trim() || null,
-          color: formData.color
-        } as any)
+        .update(updatePayload as never)
         .eq('id', editingCategory.id);
 
       if (error) {
@@ -678,7 +686,7 @@ export default function CategoriesManagementPage() {
                 .filter(category => categoryUsage[category.id] > 0)
                 .sort((a, b) => (categoryUsage[b.id] || 0) - (categoryUsage[a.id] || 0))
                 .slice(0, 10)
-                .map((category, index) => (
+                .map((category) => (
                   <div key={category.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       

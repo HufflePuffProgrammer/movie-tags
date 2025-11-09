@@ -1,6 +1,7 @@
 'use client'
 
 import { Clock, Calendar, Film } from 'lucide-react';
+import Image from 'next/image'
 import { Movie } from '@/types/movie';
 
 interface MovieHeaderProps {
@@ -15,7 +16,7 @@ export default function MovieHeader({ movie }: MovieHeaderProps) {
         <div className="md:w-64 flex-shrink-0">
           <div className="aspect-[2/3] bg-gray-200 relative">
             {movie.poster_url ? (
-              <img 
+              <Image
                 src={movie.poster_url} 
                 alt={movie.title} 
                 className="w-full h-full object-cover"
