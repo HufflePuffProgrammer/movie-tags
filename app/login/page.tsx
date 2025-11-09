@@ -22,13 +22,14 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const { error } = await signIn(email, password)
-      if (error) {
-        setError(error.message)
+      const { error: signInError } = await signIn(email, password)
+      if (signInError) {
+        setError(signInError.message)
       } else {
         router.push('/')
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Login error', err)
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)

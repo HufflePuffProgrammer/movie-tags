@@ -81,7 +81,7 @@ export default function TestDatabasePage() {
 
     // Test 1: Database Connection
     await runTest('Database Connection', async () => {
-      const { data, error } = await supabase.from('movies').select('count').limit(1);
+      const { error } = await supabase.from('movies').select('count').limit(1);
       if (error) throw error;
       return 'Connection successful';
     });

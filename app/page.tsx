@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from "react";
-import { Search, X } from "lucide-react";
 import { useMovies } from "@/hooks/useMovies";
 import Header from "@/components/layout/Header";
 import FiltersSidebar from "@/components/layout/FiltersSidebar";
@@ -9,7 +8,7 @@ import MovieGrid from "@/components/movie/MovieGrid";
 import SmartMovieSearch from "@/components/SmartMovieSearch";
 
 export default function Home() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const searchQuery = '';
   const [sortBy, setSortBy] = useState('release_date');
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [selectedTags, setSelectedTags] = useState<number[]>([]);

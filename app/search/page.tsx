@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Header from '@/components/layout/Header';
 import SmartMovieSearch from '@/components/SmartMovieSearch';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
@@ -68,7 +69,7 @@ function LocalResultsSection({ movies, formatYear, formatRuntime, sectionId }: L
         {movies.map((movie) => (
           <div key={`local-${movie.id}`} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {movie.poster_url ? (
-              <img
+              <Image
                 src={movie.poster_url}
                 alt={movie.title}
                 className="w-full h-64 object-cover"
@@ -126,7 +127,7 @@ function TMDBResultsSection({ movies, formatYear, addingMovieId, onAddMovie, sec
         {movies.map((movie) => (
           <div key={`tmdb-${movie.id}`} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {movie.poster_path ? (
-              <img
+              <Image
                 src={movie.poster_path}
                 alt={movie.title}
                 className="w-full h-64 object-cover"
@@ -174,7 +175,18 @@ function TMDBResultsSection({ movies, formatYear, addingMovieId, onAddMovie, sec
   );
 }
 
-export default function SearchResultsPage() {
+function SearchResultsFallback() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center text-gray-600">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-4" />
+        <p>Loading search results…</p>
+      </div>
+    </div>
+  );
+}
+
+function SearchResultsPageContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -312,7 +324,7 @@ export default function SearchResultsPage() {
           <h1 className="text-3xl font-bold text-gray-900">App/search/page Search Results</h1>
           {query && (
             <p className="text-gray-600 mt-2">
-              Results for: <span className="font-medium text-gray-900">"{query}"</span>
+              Results for: <span className="font-medium text-gray-900">&quot;{query}&quot;</span>
             </p>
           )}
         </div>
@@ -374,7 +386,7 @@ export default function SearchResultsPage() {
                     <Search className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No movies found</h3>
                     <p className="text-gray-600">
-                      No results found for "{query}". Try a different search term.
+                      No results found for &quot;{query}&quot;. Try a different search term.
                     </p>
                   </div>
                 )}
@@ -402,3 +414,10 @@ export default function SearchResultsPage() {
   );
 }
 
+export default function SearchResultsPage() {
+  return (
+    <Suspense fallback={<SearchResultsFallback />}>
+      <SearchResultsPageContent />
+    </Suspense>
+  );
+}

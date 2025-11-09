@@ -120,11 +120,16 @@ async function enrichMovieData(movieId: number, tmdbId: number) {
 
     if (!detailsResponse.ok) return;
 
-    const details = await detailsResponse.json();
+    const details: {
+      credits?: { crew?: Array<{ job?: string; name?: string }> };
+      genres?: Array<{ name?: string }>;
+      runtime?: number | null;
+      tagline?: string | null;
+    } = await detailsResponse.json();
     
     // Extract director from credits
     const director = details.credits?.crew?.find(
-      (person: any) => person.job === 'Director'
+      (person) => person.job === 'Director'
     )?.name;
 
     // Extract primary genre

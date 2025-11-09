@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link';
+import Image from 'next/image'
 import { Calendar, Tag as TagIcon, Bookmark, StickyNote, Film } from 'lucide-react';
 import { Database } from '@/types/database';
 import { Movie } from '@/types/movie';
@@ -39,7 +40,7 @@ export default function MovieActivityCard({ activity }: MovieActivityCardProps) 
         <div className="flex-shrink-0">
           <div className="w-24 h-36 bg-gray-200 rounded-md relative">
             {activity.movie.poster_url ? (
-              <img
+              <Image
                 src={activity.movie.poster_url}
                 alt={activity.movie.title}
                 className="w-full h-full object-cover rounded-md"

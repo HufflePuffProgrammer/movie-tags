@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { ArrowLeft, Users, Search, Calendar, Tag, Film } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase-client';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@/types/database';
 
-interface UserProfile {
-  id: string;
-  user_name: string;
-  full_name: string;
-  created_at: string;
+type ProfileSummary = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'user_name' | 'full_name' | 'created_at'>;
+
+interface UserProfile extends ProfileSummary {
   email?: string;
   last_sign_in_at?: string;
   tag_count?: number;
@@ -36,7 +36,7 @@ export default function UsersManagementPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const supabase = createClient();
+      const supabase: SupabaseClient<Database> = createClient();
       
       // Get profiles with user activity counts
       const { data: profiles, error: profilesError } = await supabase
@@ -51,29 +51,38 @@ export default function UsersManagementPage() {
 
       if (profilesError) throw profilesError;
 
+      const profileList = (profiles ?? []) as ProfileSummary[];
+
       // Get user activity counts
       const usersWithActivity = await Promise.all(
-        (profiles || []).map(async (profile) => {
+        profileList.map(async (profile) => {
+          const fetchCount = async (
+            table: 'user_movie_tags' | 'user_movie_categories' | 'user_notes'
+          ) => {
+            const { count, error } = await supabase
+              .from(table)
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', profile.id);
+
+            if (error) {
+              console.error(`Error fetching ${table} count for user ${profile.id}:`, error);
+              return 0;
+            }
+
+            return count ?? 0;
+          };
+
           const [tagCount, categoryCount, noteCount] = await Promise.all([
-            supabase
-              .from('user_movie_tags')
-              .select('id', { count: 'exact' })
-              .eq('user_id', profile.id),
-            supabase
-              .from('user_movie_categories')
-              .select('id', { count: 'exact' })
-              .eq('user_id', profile.id),
-            supabase
-              .from('user_notes')
-              .select('id', { count: 'exact' })
-              .eq('user_id', profile.id)
+            fetchCount('user_movie_tags'),
+            fetchCount('user_movie_categories'),
+            fetchCount('user_notes'),
           ]);
 
           return {
             ...profile,
-            tag_count: tagCount.count || 0,
-            category_count: categoryCount.count || 0,
-            note_count: noteCount.count || 0
+            tag_count: tagCount,
+            category_count: categoryCount,
+            note_count: noteCount,
           };
         })
       );

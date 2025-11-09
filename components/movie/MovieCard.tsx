@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link';
+import Image from 'next/image'
 import { Film, Star } from 'lucide-react';
 import { Movie } from '@/types/movie';
 
@@ -16,7 +17,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
     >
       <div className="aspect-[2/3] bg-gray-200 relative">
         {movie.poster_url ? (
-          <img 
+          <Image 
             src={movie.poster_url} 
             alt={movie.title} 
             className="w-full h-full object-cover"
