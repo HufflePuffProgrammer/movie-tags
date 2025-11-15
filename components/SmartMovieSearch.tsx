@@ -85,7 +85,7 @@ export default function SmartMovieSearch({
     setLoading(true);
     
     try {
-      const searchUrl = `/api/search?query=${encodeURIComponent(searchQuery)}`;
+      const searchUrl = `/api/search?byLocalResults=true&query=${encodeURIComponent(searchQuery)}&byMovies=wars123&byTVShows=glad123`;
       console.log('🌐 SmartMovieSearch: Calling API:', searchUrl);
       
       const response = await fetch(searchUrl);
@@ -336,6 +336,9 @@ export default function SmartMovieSearch({
             placeholder={placeholder}
             className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg text-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-900"
           />
+            <input type="hidden" name="byLocalResults" value="true" />
+            <input type="hidden" name="byMovies" value="false" />
+            <input type="hidden" name="byTVShows" value="false" />
           {query && (
             <button
               type="button"
