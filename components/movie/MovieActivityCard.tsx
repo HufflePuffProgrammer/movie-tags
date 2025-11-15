@@ -37,10 +37,12 @@ export default function MovieActivityCard({ activity }: MovieActivityCardProps) 
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex gap-6">
         {/* Movie Poster */}
-        <div className="flex-shrink-0">
-          <div className="w-24 h-36 bg-gray-200 rounded-md relative">
+        <div className="flex-shrink-0 w-64">
+          <div className="aspect-[2/3] bg-gray-200 rounded-md relative">
             {activity.movie.poster_url ? (
               <Image
+              width={400}
+              height={600}
                 src={activity.movie.poster_url}
                 alt={activity.movie.title}
                 className="w-full h-full object-cover rounded-md"

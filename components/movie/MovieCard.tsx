@@ -20,6 +20,8 @@ export default function MovieCard({ movie }: MovieCardProps) {
           <Image 
             src={movie.poster_url} 
             alt={movie.title} 
+            width={400}
+            height={600}
             className="w-full h-full object-cover"
             onError={(e) => {
               e.currentTarget.style.display = 'none';

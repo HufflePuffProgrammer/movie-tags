@@ -39,14 +39,16 @@ interface SearchResults {
   localResults: LocalMovie[];
   tmdbResults: TMDBMovie[];
   hasMore: boolean;
+  byMovies: boolean;
   error?: string;
 }
 
 const sidebarLinks: SidebarLink[] = [
-  { label: 'Local Results', href: '#local-results' },
-  { label: 'Movies', href: '#movies' },
-  { label: 'TV Series', href: '#tv-series' }
+  { label: 'Local Results', href: '/search?byLocalResults=true&byMovies=false&byTVShows=false' },
+  { label: 'Movies', href: '/search?byMovies=true&byTVShows=false&byLocalResults=false' },
+  { label: 'TV Series', href: '/search?byTVShows=true&byMovies=false&byLocalResults=false' }
 ];
+
 
 interface LocalResultsSectionProps {
   movies: LocalMovie[];
@@ -69,11 +71,17 @@ function LocalResultsSection({ movies, formatYear, formatRuntime, sectionId }: L
         {movies.map((movie) => (
           <div key={`local-${movie.id}`} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {movie.poster_url ? (
-              <Image
-                src={movie.poster_url}
-                alt={movie.title}
-                className="w-full h-64 object-cover"
-              />
+          <Image 
+          src={movie.poster_url} 
+          alt={movie.title} 
+          width={400}
+          height={600}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+          }}
+        />
             ) : (
               <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
                 <Search className="w-8 h-8 text-gray-400" />
@@ -114,6 +122,7 @@ interface TMDBResultsSectionProps {
 }
 
 function TMDBResultsSection({ movies, formatYear, addingMovieId, onAddMovie, sectionId }: TMDBResultsSectionProps) {
+ 
   if (movies.length === 0) {
     return null;
   }
@@ -127,12 +136,18 @@ function TMDBResultsSection({ movies, formatYear, addingMovieId, onAddMovie, sec
         {movies.map((movie) => (
           <div key={`tmdb-${movie.id}`} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {movie.poster_path ? (
-              <Image
-                src={movie.poster_path}
-                alt={movie.title}
-                className="w-full h-64 object-cover"
-              />
-            ) : (
+                <Image
+                  src={movie.poster_path}
+                  alt={movie.title}
+                  className="w-full h-64 object-cover"
+                  width={400}
+                  height={600}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : (
               <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
                 <Search className="w-8 h-8 text-gray-400" />
               </div>
@@ -190,21 +205,34 @@ function SearchResultsPageContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
-  
+  const byMovies = searchParams.get('byMovies');
+  const byTVShows = searchParams.get('byTVShows');
+  const byLocalResultsParam = searchParams.get('byLocalResults');
+  const byMoviesParam = byMovies === 'true';
+  const byTVShowsParam = byTVShows === 'true';
+  const byLocalResults = byLocalResultsParam
+    ? byLocalResultsParam === 'true'
+    : !byMoviesParam && !byTVShowsParam;
   const [results, setResults] = useState<SearchResults>({
     localResults: [],
     tmdbResults: [],
-    hasMore: false
+    hasMore: false,
+    byMovies: false
   });
   const [loading, setLoading] = useState(false);
   const [addingMovieId, setAddingMovieId] = useState<number | null>(null);
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
 
   useEffect(() => {
+
     if (query.trim().length >= 2) {
-      performSearch(query);
+      performSearch(query, {
+        byLocalResults,
+        byMovies: byMoviesParam,
+        byTVShows: byTVShowsParam
+      });
     }
-  }, [query]);
+  }, [query, byLocalResults, byMoviesParam, byTVShowsParam]);
 
   useEffect(() => {
     if (notification) {
@@ -213,21 +241,31 @@ function SearchResultsPageContent() {
     }
   }, [notification]);
 
-  const performSearch = async (searchQuery: string) => {
+  const performSearch = async (
+    searchQuery: string,
+    filters: { byLocalResults: boolean; byMovies: boolean; byTVShows: boolean }
+  ) => {
     setLoading(true);
     try {
-      console.log('🔍 SearchResults: Performing search for:', searchQuery);
-      const response = await fetch(`/api/search?query=${encodeURIComponent(searchQuery)}`);
+
+      const params = new URLSearchParams({
+        query: searchQuery,
+        byLocalResults: filters.byLocalResults ? 'true' : 'false',
+        byMovies: filters.byMovies ? 'true' : 'false',
+        byTVShows: filters.byTVShows ? 'true' : 'false'
+      });
+      const response = await fetch(`/api/search?${params.toString()}`);
       const data: SearchResults = await response.json();
       
-      console.log('📥 SearchResults: API Response:', data);
+
       setResults(data);
     } catch (error) {
-      console.error('❌ SearchResults: Search error:', error);
+
       setResults({ 
         localResults: [], 
         tmdbResults: [], 
         hasMore: false, 
+        byMovies: false,
         error: 'Search failed' 
       });
     } finally {
@@ -247,7 +285,7 @@ function SearchResultsPageContent() {
     setAddingMovieId(tmdbMovie.id);
     
     try {
-      console.log('➕ SearchResults: Adding TMDB movie:', tmdbMovie.title);
+
       const response = await fetch('/api/add-movie', {
         method: 'POST',
         headers: {
@@ -271,7 +309,15 @@ function SearchResultsPageContent() {
         }));
         
         // Refresh search to show newly added movie in local results
-        setTimeout(() => performSearch(query), 500);
+        setTimeout(
+          () =>
+            performSearch(query, {
+              byLocalResults,
+              byMovies: byMoviesParam,
+              byTVShows: byTVShowsParam
+            }),
+          500
+        );
       } else {
         setNotification({
           type: 'error',
@@ -339,7 +385,7 @@ function SearchResultsPageContent() {
         </div>
 
         <div className="flex gap-8">
-          <SidebarNavigation links={sidebarLinks} title="Shortcuts" />
+          <SidebarNavigation links={sidebarLinks} title="Shortcuts" query={query} />
           <div className="flex-1 space-y-8">
             {/* Loading State */}
             {loading && (

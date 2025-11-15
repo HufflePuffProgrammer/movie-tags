@@ -17,6 +17,8 @@ export default function MovieHeader({ movie }: MovieHeaderProps) {
           <div className="aspect-[2/3] bg-gray-200 relative">
             {movie.poster_url ? (
               <Image
+                width={400}
+                height={600}
                 src={movie.poster_url} 
                 alt={movie.title} 
                 className="w-full h-full object-cover"

@@ -11,11 +11,15 @@ interface SidebarNavigationProps {
   links: SidebarLink[];
   title?: string;
   className?: string;
-}
+  query?: string;
+  byMovies?: string;
+  byTVShows?: string;
+  }
 
 export default function SidebarNavigation({
   links,
   title,
+  query,
   className = "",
 }: SidebarNavigationProps) {
   return (
@@ -29,10 +33,15 @@ export default function SidebarNavigation({
           </div>
         )}
         <ul className="divide-y divide-gray-200">
-          {links.map((link) => (
+          {links.map((link) => {
+            const querySuffix =
+              query && query.trim().length > 0
+                ? `${link.href.includes('?') ? '&' : '?'}q=${encodeURIComponent(query)}`
+                : '';
+            return (
             <li key={link.label}>
               <Link
-                href={link.href}
+                href={`${link.href}${querySuffix}`}
                 className="block px-5 py-4 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition-colors"
               >
                 <span className="flex items-center gap-2">
@@ -41,7 +50,8 @@ export default function SidebarNavigation({
                 </span>
               </Link>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </nav>
     </aside>
