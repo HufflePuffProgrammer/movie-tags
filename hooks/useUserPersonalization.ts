@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import { Database } from '@/types/database';
+import { useNotification } from './useNotification';
+import { PersonalizationService } from '@/lib/services/personalization-service';
+
 
 type Category = Database['public']['Tables']['categories']['Row'];
 type UserMovieCategory = Database['public']['Tables']['user_movie_categories']['Row'];
@@ -18,32 +21,23 @@ interface UserTagWithDetails extends UserMovieTag {
   tag: Tag;
 }
 
-interface NotificationState {
-  type: 'success' | 'error';
-  message: string;
-}
-
 export function useUserPersonalization(movieId: string, userId?: string) {
   const [userTags, setUserTags] = useState<UserTagWithDetails[]>([]);
   const [userCategories, setUserCategories] = useState<UserCategoryWithDetails[]>([]);
   const [userNotes, setUserNotes] = useState<UserNote[]>([]);
-  const [notification, setNotification] = useState<NotificationState | null>(null);
+  const { notification, showSuccess, showError, setNotification } = useNotification();
 
-  const fetchUserPersonalization = async () => {
+  // ✅ Create Supabase client once at hook level
+  const supabase = useMemo(() => createClient(), []);
+  const service = useMemo(() => new PersonalizationService(supabase), [supabase]);
+
+  // ✅ Wrap in useCallback with proper dependencies
+  const fetchUserPersonalization = useCallback(async () => {
     if (!userId || !movieId) return;
 
     try {
-      const supabase = createClient();
-
       // Fetch user's categories for this movie
-      const { data: userMovieCategories, error: userCategoriesError } = await supabase
-        .from('user_movie_categories')
-        .select(`
-          *,
-          category:categories(*)
-        `)
-        .eq('user_id', userId)
-        .eq('movie_id', parseInt(movieId));
+      const { data: userMovieCategories, error: userCategoriesError } = await service.getUserCategories(userId, parseInt(movieId));
 
       if (userCategoriesError) {
         console.error('Error fetching user categories:', userCategoriesError);
@@ -52,15 +46,8 @@ export function useUserPersonalization(movieId: string, userId?: string) {
       }
 
       // Fetch user's tags for this movie
-      const { data: userTags, error: userTagsError } = await supabase
-        .from('user_movie_tags')
-        .select(`
-          *,
-          tag:tags(*)
-        `)
-        .eq('user_id', userId)
-        .eq('movie_id', parseInt(movieId));
-
+      const { data: userTags, error: userTagsError } = await service.getUserTags(userId, parseInt(movieId));
+      
       if (userTagsError) {
         console.error('Error fetching user tags:', userTagsError);
       } else {
@@ -68,12 +55,7 @@ export function useUserPersonalization(movieId: string, userId?: string) {
       }
 
       // Fetch user's notes for this movie
-      const { data: userNotes, error: userNotesError } = await supabase
-        .from('user_notes')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('movie_id', parseInt(movieId))
-        .order('created_at', { ascending: false });
+      const { data: userNotes, error: userNotesError } = await service.getUserNotes(userId, parseInt(movieId));
 
       if (userNotesError) {
         console.error('Error fetching user notes:', userNotesError);
@@ -83,59 +65,55 @@ export function useUserPersonalization(movieId: string, userId?: string) {
     } catch (error) {
       console.error('Error fetching user personalization:', error);
     }
-  };
+  }, [userId, movieId, service]);
 
   useEffect(() => {
     fetchUserPersonalization();
-  }, [movieId, userId]);
+  }, [fetchUserPersonalization]);
 
   // Tag operations
   const addTag = async (tag: Tag) => {
     if (!userId || !movieId) return;
     
+    // Create optimistic tag
+    const optimisticTag: UserTagWithDetails = {
+      id: Date.now(), // Temporary ID
+      user_id: userId,
+      movie_id: parseInt(movieId),
+      tag_id: tag.id,
+      tag,
+      created_at: new Date().toISOString()
+    };
+    
+    // Optimistically update UI
+    setUserTags(prevTags => [...prevTags, optimisticTag]);
+    
     try {
-      const supabase = createClient();
-      
-      const { data, error } = await supabase
-        .from('user_movie_tags')
-        .insert({
-          user_id: userId,
-          movie_id: parseInt(movieId),
-          tag_id: tag.id
-        } as any)
-        .select(`
-          *,
-          tag:tags(*)
-        `)
-        .single();
+      const { data, error } = await service.addTag(userId, parseInt(movieId), tag.id);
 
       if (error) {
+      // Rollback on error
+      setUserTags(prevTags => prevTags.filter(t => t.id !== optimisticTag.id));
+      
         console.error('Error adding tag:', error);
         if (error.code === '23505') { // Unique constraint violation
-          setNotification({
-            type: 'error',
-            message: 'You have already added this tag to this movie.'
-          });
+          showError('You have already added this tag to this movie.');
         } else {
-          setNotification({
-            type: 'error',
-            message: 'Failed to add tag. Please try again.'
-          });
+          showError('Failed to add tag. Please try again.');
         }
       } else {
         // Refresh the user's tags (same pattern as categories)
-        fetchUserPersonalization();
-        setNotification({
-          type: 'success',
-          message: 'Tag added successfully!'
-        });
+        // Replace temporary tag with real data
+        setUserTags(prevTags => 
+          prevTags.map(t => t.id === optimisticTag.id ? data : t)
+        );
+        showSuccess('Tag added successfully!');
       }
     } catch (error) {
+      // Rollback on error
+      setUserTags(prevTags => prevTags.filter(t => t.id !== optimisticTag.id));
       console.error('Error adding tag:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to add tag. Please try again.'
-      });
+      showError('Failed to add tag. Please try again.');
     }
   };
 
@@ -143,34 +121,19 @@ export function useUserPersonalization(movieId: string, userId?: string) {
     if (!userId) return;
     
     try {
-      const supabase = createClient();
-      
-      const { error } = await supabase
-        .from('user_movie_tags')
-        .delete()
-        .eq('id', userMovieTagId)
-        .eq('user_id', userId); // Additional security check
+      const { error } = await service.removeTag(userMovieTagId, userId);
       
       if (error) {
         console.error('Error removing tag:', error);
-        setNotification({
-          type: 'error',
-          message: 'Failed to remove tag. Please try again.'
-        });
+        showError('Failed to remove tag. Please try again.');
       } else {
         // Update local state to remove the tag
         setUserTags(userTags.filter(userTag => userTag.id !== userMovieTagId));
-        setNotification({
-          type: 'success',
-          message: 'Tag removed successfully!'
-        });
+        showSuccess( 'Tag removed successfully!');
       }
     } catch (error) {
       console.error('Error removing tag:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to remove tag. Please try again.'
-      });
+      showError( 'Failed to remove tag. Please try again.');
     }
   };
 
@@ -178,45 +141,50 @@ export function useUserPersonalization(movieId: string, userId?: string) {
   const addCategory = async (category: Category) => {
     if (!userId || !movieId) return;
     
+    // Create optimistic category
+    const optimisticCategory: UserCategoryWithDetails = {
+      id: Date.now(), // Temporary ID
+      user_id: userId,
+      movie_id: parseInt(movieId),
+      category_id: category.id,
+      category,
+      created_at: new Date().toISOString()
+    };
+    
+    // Optimistically update UI
+    setUserCategories(prevCategories => [...prevCategories, optimisticCategory]);
+    
     try {
-      const supabase = createClient();
-      
-      const { error } = await supabase
-        .from('user_movie_categories')
-        .insert({
-          user_id: userId,
-          movie_id: parseInt(movieId),
-          category_id: category.id
-        } as any);
+      const { data, error } = await service.addCategory(userId, parseInt(movieId), category.id);
 
       if (error) {
+        // Rollback on error
+        setUserCategories(prevCategories => 
+          prevCategories.filter(c => c.id !== optimisticCategory.id)
+        );
+        
         console.error('Error adding category:', error);
         // Handle specific error cases
         if (error.code === '23505') { // Unique constraint violation
-          setNotification({
-            type: 'error',
-            message: 'You have already added this category to this movie.'
-          });
+          showError('You have already added this category to this movie.');
         } else {
-          setNotification({
-            type: 'error',
-            message: 'Failed to add category. Please try again.'
-          });
+          showError('Failed to add category. Please try again.');
         }
       } else {
-        // Refresh the user's categories
-        fetchUserPersonalization();
-        setNotification({
-          type: 'success',
-          message: 'Category added successfully!'
-        });
+        // Replace temporary category with real data
+        setUserCategories(prevCategories => 
+          prevCategories.map(c => c.id === optimisticCategory.id ? data : c)
+        );       
+        showSuccess('Category added successfully!');
       }
     } catch (error) {
+      // Rollback on error
+      setUserCategories(prevCategories => 
+        prevCategories.filter(c => c.id !== optimisticCategory.id)
+      );
+      
       console.error('Error adding category:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to add category. Please try again.'
-      });
+      showError('Failed to add category. Please try again.');
     }
   };
 
@@ -224,35 +192,21 @@ export function useUserPersonalization(movieId: string, userId?: string) {
     if (!userId || !movieId) return;
     
     try {
-      const supabase = createClient();
-      
-      // Delete the user_movie_category record
-      const { error } = await supabase
-        .from('user_movie_categories')
-        .delete()
-        .eq('id', categoryId)
-        .eq('user_id', userId); // Additional security check
+      const { error } = await service.removeCategory(categoryId, userId);
       
       if (error) {
         console.error('Error removing category:', error);
-        setNotification({
-          type: 'error',
-          message: 'Failed to remove category. Please try again.'
-        });
+        showError('Failed to remove category. Please try again.');
+
       } else {
         // Update local state to remove the category
         setUserCategories(userCategories.filter(category => category.id !== categoryId));
-        setNotification({
-          type: 'success',
-          message: 'Category removed successfully!'
-        });
+        showSuccess('Category removed successfully!');
+
       }
     } catch (error) {
       console.error('Error removing category:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to remove category. Please try again.'
-      });
+      showError('Failed to remove category. Please try again.');
     }
   };
 
@@ -260,39 +214,44 @@ export function useUserPersonalization(movieId: string, userId?: string) {
   const addNote = async (content: string) => {
     if (!userId || !movieId) return;
     
+    // Create optimistic note
+    const optimisticNote: UserNote = {
+      id: Date.now(), // Temporary ID
+      user_id: userId,
+      movie_id: parseInt(movieId),
+      content: content,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Optimistically update UI (add to beginning since notes are ordered by created_at desc)
+    setUserNotes(prevNotes => [optimisticNote, ...prevNotes]);
+    
     try {
-      const supabase = createClient();
+      const { data, error } = await service.addNote(userId, parseInt(movieId), content);
       
-      const { data, error } = await supabase
-        .from('user_notes')
-        .insert({
-          user_id: userId,
-          movie_id: parseInt(movieId),
-          content: content
-        } as any)
-        .select()
-        .single();
-
       if (error) {
+        // Rollback on error
+        setUserNotes(prevNotes => prevNotes.filter(n => n.id !== optimisticNote.id));
+        
         console.error('Error adding note:', error);
-        setNotification({
-          type: 'error',
-          message: 'Failed to add note. Please try again.'
-        });
+        showError('Failed to add note. Please try again.');
+
       } else {
-        // Refresh the user's data (same pattern as tags and categories)
-        fetchUserPersonalization();
-        setNotification({
-          type: 'success',
-          message: 'Note added successfully!'
-        });
+        // Replace temporary note with real data
+        setUserNotes(prevNotes => 
+          prevNotes.map(n => n.id === optimisticNote.id ? data : n)
+        );
+        showSuccess('Note added successfully!');
+
       }
     } catch (error) {
+      // Rollback on error
+      setUserNotes(prevNotes => prevNotes.filter(n => n.id !== optimisticNote.id));
+      
       console.error('Error adding note:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to add note. Please try again.'
-      });
+      showError('Failed to add note. Please try again.');
+
     }
   };
 
@@ -300,34 +259,22 @@ export function useUserPersonalization(movieId: string, userId?: string) {
     if (!userId) return;
     
     try {
-      const supabase = createClient();
-      
-      const { error } = await supabase
-        .from('user_notes')
-        .delete()
-        .eq('id', noteId)
-        .eq('user_id', userId); // Additional security check
+      const { error } = await service.removeNote(noteId, userId);
       
       if (error) {
         console.error('Error removing note:', error);
-        setNotification({
-          type: 'error',
-          message: 'Failed to remove note. Please try again.'
-        });
+        showError('Failed to remove note. Please try again.');
+
       } else {
         // Update local state to remove the note
         setUserNotes(userNotes.filter(note => note.id !== noteId));
-        setNotification({
-          type: 'success',
-          message: 'Note removed successfully!'
-        });
+        showSuccess('Note removed successfully!');
+
       }
     } catch (error) {
       console.error('Error removing note:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to remove note. Please try again.'
-      });
+      showError('Failed to remove note. Please try again.');
+
     }
   };
 

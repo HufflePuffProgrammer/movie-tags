@@ -49,7 +49,7 @@ export default function SignupPage() {
       if (signUpError) {
         console.error('Signup error:', signUpError)
         setError(`Signup failed: ${signUpError.message}`)
-      } else if (data.user) {
+      } else if (data?.user && data?.session) {
         console.log('Signup successful:', data.user)
         setSuccess(true)
       } else {
@@ -233,13 +233,13 @@ export default function SignupPage() {
               />
               <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
                 I agree to the{' '}
-                <a href="#" className="text-yellow-600 hover:text-yellow-500">
+                <Link href="/terms" className="text-yellow-600 hover:text-yellow-500">
                   Terms of Service
-                </a>{' '}
+                </Link>{' '}
                 and{' '}
-                <a href="#" className="text-yellow-600 hover:text-yellow-500">
+                <Link href="/privacy" className="text-yellow-600 hover:text-yellow-500">
                   Privacy Policy
-                </a>
+                </Link>
               </label>
             </div>
 

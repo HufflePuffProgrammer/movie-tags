@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { createClient } from '@/lib/supabase-client';
 import { Database } from '@/types/database';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { useNotification } from '@/hooks/useNotification';
 
 type Tag = Database['public']['Tables']['tags']['Row'];
 type TagInsert = Database['public']['Tables']['tags']['Insert'];
@@ -34,7 +35,7 @@ export default function TagsManagementPage() {
     description: '',
     color: '#3B82F6'
   });
-  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const { notification, showSuccess, showError, setNotification } = useNotification();
 
   // Simple admin check
   const isAdmin = user?.email?.includes('admin') || user?.email === 'testuser02@email.com';
@@ -68,10 +69,7 @@ export default function TagsManagementPage() {
       setTags(data || []);
     } catch (error) {
       console.error('Error fetching tags:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to load tags'
-      });
+      showError('Failed to load tags');
     } finally {
       setLoading(false);
     }
@@ -131,10 +129,7 @@ export default function TagsManagementPage() {
   const handleCreate = async () => {
     const validationError = validateTagName(formData.name);
     if (validationError) {
-      setNotification({
-        type: 'error',
-        message: validationError
-      });
+      showError(validationError);
       return;
     }
 
@@ -153,10 +148,7 @@ export default function TagsManagementPage() {
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
-          setNotification({
-            type: 'error',
-            message: 'A tag with this name already exists'
-          });
+          showError('A tag with this name already exists');
         } else {
           throw error;
         }
@@ -166,20 +158,14 @@ export default function TagsManagementPage() {
       setTags(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
       setIsCreating(false);
       setFormData({ name: '', description: '', color: '#3B82F6' });
-      setNotification({
-        type: 'success',
-        message: 'Tag created successfully!'
-      });
+      showSuccess('Tag created successfully!');
 
       // Clear localStorage cache to force refresh
       localStorage.removeItem('movie-tags');
       localStorage.removeItem('movie-tags-timestamp');
     } catch (error) {
       console.error('Error creating tag:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to create tag. Please try again.'
-      });
+      showError('Failed to create tag. Please try again.');
     }
   };
 
@@ -188,10 +174,7 @@ export default function TagsManagementPage() {
     
     const validationError = validateTagName(formData.name, editingTag.id);
     if (validationError) {
-      setNotification({
-        type: 'error',
-        message: validationError
-      });
+      showError(validationError);
       return;
     }
 
@@ -236,15 +219,9 @@ export default function TagsManagementPage() {
         console.log('Tag after update attempt:', updatedTag);
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
-          setNotification({
-            type: 'error',
-            message: 'A tag with this name already exists'
-          });
+          showError('A tag with this name already exists');
         } else if (error.code === 'PGRST116') { // No rows found
-          setNotification({
-            type: 'error',
-            message: 'Tag not found. It may have been deleted by another user.'
-          });
+          showError('Tag not found. It may have been deleted by another user.');
           // Refresh the tags list
           fetchTags();
         } else {
@@ -258,10 +235,7 @@ export default function TagsManagementPage() {
       
       setEditingTag(null);
       setFormData({ name: '', description: '', color: '#3B82F6' });
-      setNotification({
-        type: 'success',
-        message: 'Tag updated successfully!'
-      });
+      showSuccess('Tag updated successfully!');
 
       // Clear localStorage cache to force refresh
       localStorage.removeItem('movie-tags');
@@ -270,10 +244,7 @@ export default function TagsManagementPage() {
       localStorage.removeItem('movie-categories-timestamp');
     } catch (error) {
       console.error('Error updating tag:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to update tag. Please try again.'
-      });
+      showError('Failed to update tag. Please try again.');
     }
   };
 
@@ -296,10 +267,7 @@ export default function TagsManagementPage() {
 
       if (error) {
         if (error.code === '23503') { // Foreign key constraint
-          setNotification({
-            type: 'error',
-            message: 'Cannot delete tag: it is currently in use by movies.'
-          });
+          showError('Cannot delete tag: it is currently in use by movies.');
         } else {
           throw error;
         }
@@ -313,20 +281,14 @@ export default function TagsManagementPage() {
         return newUsage;
       });
       
-      setNotification({
-        type: 'success',
-        message: 'Tag deleted successfully!'
-      });
+      showSuccess('Tag deleted successfully!');
 
       // Clear localStorage cache to force refresh
       localStorage.removeItem('movie-tags');
       localStorage.removeItem('movie-tags-timestamp');
     } catch (error) {
       console.error('Error deleting tag:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to delete tag. Please try again.'
-      });
+      showError('Failed to delete tag. Please try again.');
     }
   };
 
@@ -361,20 +323,14 @@ export default function TagsManagementPage() {
       });
       setSelectedTags([]);
       
-      setNotification({
-        type: 'success',
-        message: `${selectedTags.length} tag(s) deleted successfully!`
-      });
+      showSuccess(`${selectedTags.length} tag(s) deleted successfully!`);
 
       // Clear localStorage cache to force refresh
       localStorage.removeItem('movie-tags');
       localStorage.removeItem('movie-tags-timestamp');
     } catch (error) {
       console.error('Error bulk deleting tags:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to delete some tags. They may be in use by movies.'
-      });
+      showError('Failed to delete some tags. They may be in use by movies.');
     } finally {
       setBulkDeleteLoading(false);
     }

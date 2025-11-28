@@ -60,7 +60,7 @@ export function useUserActivity(userId?: string) {
           `)
           .eq('user_id', userId);
 
-        userTags?.forEach((tag: any) => movieIds.add(tag.movie_id));
+        userTags?.forEach((tag: UserTagWithDetails) => movieIds.add(tag.movie_id));
 
         // Fetch user's categories
         const { data: userCategories } = await supabase
@@ -71,7 +71,7 @@ export function useUserActivity(userId?: string) {
           `)
           .eq('user_id', userId);
 
-        userCategories?.forEach((cat: any) => movieIds.add(cat.movie_id));
+        userCategories?.forEach((cat: UserCategoryWithDetails) => movieIds.add(cat.movie_id));
 
         // Fetch user's notes
         const { data: userNotes } = await supabase
@@ -79,7 +79,7 @@ export function useUserActivity(userId?: string) {
           .select('*')
           .eq('user_id', userId);
 
-        userNotes?.forEach((note: any) => movieIds.add(note.movie_id));
+        userNotes?.forEach((note: UserNote) => movieIds.add(note.movie_id));
 
         // Fetch movie details for all interacted movies
         const movieIdsArray = Array.from(movieIds);
@@ -97,16 +97,16 @@ export function useUserActivity(userId?: string) {
         // Group activities by movie
         const movieActivities: MovieActivity[] = [];
 
-        movies?.forEach((movie: any) => {
-          const movieTags = userTags?.filter((tag: any) => tag.movie_id === movie.id) || [];
-          const movieCategories = userCategories?.filter((cat: any) => cat.movie_id === movie.id) || [];
-          const movieNotes = userNotes?.filter((note: any) => note.movie_id === movie.id) || [];
+        movies?.forEach((movie: Movie) => {
+          const movieTags = userTags?.filter((tag: UserTagWithDetails) => tag.movie_id === movie.id) || [];
+          const movieCategories = userCategories?.filter((cat: UserCategoryWithDetails) => cat.movie_id === movie.id) || [];
+          const movieNotes = userNotes?.filter((note: UserNote) => note.movie_id === movie.id) || [];
 
           // Find the most recent activity date
           const allDates = [
-            ...movieTags.map((t: any) => t.created_at),
-            ...movieCategories.map((c: any) => c.created_at),
-            ...movieNotes.map((n: any) => n.created_at)
+            ...movieTags.map((t: UserTagWithDetails) => t.created_at),
+            ...movieCategories.map((c: UserCategoryWithDetails) => c.created_at),
+            ...movieNotes.map((n: UserNote) => n.created_at)
           ];
           
           const lastActivity = allDates.sort().reverse()[0] || new Date().toISOString();
