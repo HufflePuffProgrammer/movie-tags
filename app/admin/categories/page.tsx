@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { ArrowLeft, Tag, X, Search, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Database } from '@/types/database';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { useNotification } from '@/hooks/useNotification';
 
 interface Category {
   id: number;
@@ -38,7 +39,8 @@ export default function CategoriesManagementPage() {
     description: '',
     color: '#3B82F6'
   });
-  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const { notification, showSuccess, showError, setNotification } = useNotification();
+
 
   // Simple admin check
   const isAdmin = user?.email?.includes('admin') || user?.email === 'testuser02@email.com';
@@ -66,19 +68,15 @@ export default function CategoriesManagementPage() {
 
       if (error) {
         console.error('Error fetching categories:', error);
-        setNotification({
-          type: 'error',
-          message: 'Failed to load categories'
-        });
+        showError('Failed to load categories');
+
       } else {
         setCategories(data || []);
       }
     } catch (error) {
       console.error('Categories fetch error:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to load categories'
-      });
+      showError('Failed to load categories');
+
     } finally {
       setLoading(false);
     }
@@ -112,18 +110,14 @@ export default function CategoriesManagementPage() {
     e.preventDefault();
     
     if (!formData.name.trim()) {
-      setNotification({
-        type: 'error',
-        message: 'Category name is required'
-      });
+      showError('Category name is required');
+
       return;
     }
 
     if (formData.name.trim().length > 50) {
-      setNotification({
-        type: 'error',
-        message: 'Category name must be 50 characters or less'
-      });
+      showError('Category name must be 50 characters or less');
+
       return;
     }
 
@@ -148,10 +142,8 @@ export default function CategoriesManagementPage() {
 
       if (error) {
         if (error.code === '23505') {
-          setNotification({
-            type: 'error',
-            message: 'A category with this name already exists'
-          });
+          showError('A category with this name already exists');
+
         } else {
           throw error;
         }
@@ -161,19 +153,15 @@ export default function CategoriesManagementPage() {
       await fetchCategories();
       setIsCreating(false);
       setFormData({ name: '', description: '', color: '#3B82F6' });
-      setNotification({
-        type: 'success',
-        message: 'Category created successfully!'
-      });
+      showSuccess('Category created successfully!');
+
 
       localStorage.removeItem('movie-categories');
       localStorage.removeItem('movie-categories-timestamp');
     } catch (error) {
       console.error('Error creating category:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to create category. Please try again.'
-      });
+      showError('Failed to create category. Please try again.');
+
     }
   };
 
@@ -196,10 +184,8 @@ export default function CategoriesManagementPage() {
 
       if (error) {
         if (error.code === '23505') {
-          setNotification({
-            type: 'error',
-            message: 'A category with this name already exists'
-          });
+          showError('A category with this name already exists');
+
         } else {
           throw error;
         }
@@ -210,19 +196,15 @@ export default function CategoriesManagementPage() {
       
       setEditingCategory(null);
       setFormData({ name: '', description: '', color: '#3B82F6' });
-      setNotification({
-        type: 'success',
-        message: 'Category updated successfully!'
-      });
+      showSuccess('Category updated successfully!');
+
 
       localStorage.removeItem('movie-categories');
       localStorage.removeItem('movie-categories-timestamp');
     } catch (error) {
       console.error('Error updating category:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to update category. Please try again.'
-      });
+      showError('Failed to update category. Please try again.');
+
     }
   };
 
@@ -240,10 +222,8 @@ export default function CategoriesManagementPage() {
 
       if (error) {
         if (error.code === '23503') {
-          setNotification({
-            type: 'error',
-            message: 'Cannot delete category: it is being used by movies. Remove it from all movies first.'
-          });
+          showError('Cannot delete category: it is being used by movies. Remove it from all movies first.');
+
         } else {
           throw error;
         }
@@ -252,19 +232,14 @@ export default function CategoriesManagementPage() {
 
       await fetchCategories();
       await fetchCategoryUsage();
-      setNotification({
-        type: 'success',
-        message: 'Category deleted successfully!'
-      });
+      showSuccess('Category deleted successfully!');
 
       localStorage.removeItem('movie-categories');
       localStorage.removeItem('movie-categories-timestamp');
     } catch (error) {
       console.error('Error deleting category:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to delete category. Please try again.'
-      });
+      showError('Failed to delete category. Please try again.');
+
     }
   };
 
@@ -284,10 +259,7 @@ export default function CategoriesManagementPage() {
 
       if (error) {
         if (error.code === '23503') {
-          setNotification({
-            type: 'error',
-            message: 'Cannot delete some categories: they are being used by movies.'
-          });
+          showError('Cannot delete some categories: they are being used by movies.');
         } else {
           throw error;
         }
@@ -297,19 +269,15 @@ export default function CategoriesManagementPage() {
       await fetchCategories();
       await fetchCategoryUsage();
       setSelectedCategories([]);
-      setNotification({
-        type: 'success',
-        message: `${selectedCategories.length} categories deleted successfully!`
-      });
+      showSuccess(`${selectedCategories.length} categories deleted successfully!`);
+
 
       localStorage.removeItem('movie-categories');
       localStorage.removeItem('movie-categories-timestamp');
     } catch (error) {
       console.error('Error bulk deleting categories:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to delete categories. Please try again.'
-      });
+      showError('Failed to delete categories. Please try again.');
+
     }
   };
 

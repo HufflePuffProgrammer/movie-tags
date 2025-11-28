@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { CategoriesProvider } from "@/contexts/categories-context";
 import { TagsProvider } from "@/contexts/tags-context";
+import {ErrorBoundary} from '@/components/ErrorBoundary';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,7 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      ><ErrorBoundary>
         <AuthProvider>
           <CategoriesProvider>
             <TagsProvider>
@@ -37,6 +38,7 @@ export default function RootLayout({
             </TagsProvider>
           </CategoriesProvider>
         </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

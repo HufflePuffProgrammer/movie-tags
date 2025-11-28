@@ -11,6 +11,10 @@ interface UseMoviesFilters {
   tagIds: number[];
 }
 
+interface MovieIdResult {
+  movie_id: number;
+}
+
 export function useMovies({ searchQuery, sortBy, categoryIds, tagIds }: UseMoviesFilters) {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +60,7 @@ export function useMovies({ searchQuery, sortBy, categoryIds, tagIds }: UseMovie
               .select('movie_id')
               .in('category_id', categoryIds);
             
-            const categoryMovieIds = categoryMovies?.map((cm: any) => cm.movie_id) || [];
+            const categoryMovieIds = categoryMovies?.map((cm: MovieIdResult) => cm.movie_id) || [];
             movieIds = categoryMovieIds;
           }
           
@@ -67,7 +71,7 @@ export function useMovies({ searchQuery, sortBy, categoryIds, tagIds }: UseMovie
               .select('movie_id')
               .in('tag_id', tagIds);
             
-            const tagMovieIds = tagMovies?.map((tm: any) => tm.movie_id) || [];
+            const tagMovieIds = tagMovies?.map((tm: MovieIdResult) => tm.movie_id) || [];
             
             if (categoryIds.length > 0) {
               // If both category and tag filters, get intersection

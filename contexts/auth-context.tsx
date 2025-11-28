@@ -4,15 +4,19 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
+interface AuthResponse {
+  data: { user: User | null; session: Session | null } | null;
+  error: Error | null; 
+}
+
 interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
-  signUp: (email: string, password: string, displayName?: string) => Promise<any>
-  signIn: (email: string, password: string) => Promise<any>
+  signUp: (email: string, password: string, displayName?: string) => Promise<AuthResponse>
+  signIn: (email: string, password: string) => Promise<AuthResponse>
   signOut: () => Promise<void>
 }
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -41,31 +45,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signUp = async (email: string, password: string, displayName?: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: displayName || 'User',
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName || 'User',
+          }
         }
-      }
-    })
-    return { data, error }
+      });
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Sign up error:', error);
+      return { 
+        data: null, 
+        error: error instanceof Error ? error : new Error('Sign up failed')
+      };
+    }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { data, error }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { 
+        data: null, 
+        error: error instanceof Error ? error : new Error('Sign in failed')
+      };
+    }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Optionally rethrow or handle gracefully
+    }
   }
 
-  const value = {
+  const value: AuthContextType = {
     user,
     session,
     loading,

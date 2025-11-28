@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
-  console.log('🧪 Testing environment variables...');
+  logger.api('/test-env', 'Testing environment variables');
   
   const envCheck = {
     hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,7 +13,7 @@ export async function GET() {
     nodeEnv: process.env.NODE_ENV,
   };
 
-  console.log('🔧 Environment Check:', envCheck);
+  logger.info('Environment Check:', envCheck);
 
   return NextResponse.json({
     message: 'Environment variables check',

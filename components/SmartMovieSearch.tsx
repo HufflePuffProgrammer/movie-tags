@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Search, X, Plus, Calendar, Clock, Star, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
+import { useNotification } from '@/hooks/useNotification';
 
 interface LocalMovie {
   id: number;
@@ -66,8 +67,7 @@ export default function SmartMovieSearch({
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [addingMovieId, setAddingMovieId] = useState<number | null>(null);
-  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
-  
+  const { notification, showSuccess, showError, setNotification } = useNotification();
   const searchRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -209,10 +209,7 @@ export default function SmartMovieSearch({
   const handleAddMovie = async (tmdbMovie: TMDBMovie) => {
     if (!user) {
       console.log('❌ SmartMovieSearch: User not signed in, cannot add movie');
-      setNotification({
-        type: 'error',
-        message: 'Please sign in to add movies'
-      });
+      showError('Please sign in to add movies');
       return;
     }
 
@@ -244,10 +241,7 @@ export default function SmartMovieSearch({
 
       if (data.success) {
         console.log('✅ SmartMovieSearch: Movie added successfully:', data.movie);
-        setNotification({
-          type: 'success',
-          message: data.message
-        });
+        showSuccess(data.message);
         
         // Remove the added movie from TMDB results
         setResults(prev => ({
@@ -263,17 +257,11 @@ export default function SmartMovieSearch({
         setTimeout(() => debouncedSearch(query), 500);
       } else {
         console.log('❌ SmartMovieSearch: Failed to add movie:', data.error);
-        setNotification({
-          type: 'error',
-          message: data.error || 'Failed to add movie'
-        });
+        showError(data.error || 'Failed to add movie');
       }
     } catch (error) {
       console.error('❌ SmartMovieSearch: Error adding movie:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to add movie'
-      });
+      showError('Failed to add movie');
     } finally {
       setAddingMovieId(null);
     }

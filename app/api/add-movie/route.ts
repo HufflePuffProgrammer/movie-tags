@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServerAnon } from '@/lib/supabase-server';
+import { logger } from '@/lib/logger';
+import { Movie } from '@/types/movie';
 
 interface TMDBMovieData {
   id: number;
@@ -12,28 +14,75 @@ interface TMDBMovieData {
   runtime?: number;
 }
 
+interface AddMovieResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  movie?: Movie;
+  errorCode?: 'INVALID_REQUEST_BODY' | 'INVALID_MOVIE_DATA' | 'TITLE_TOO_LONG' | 'OVERVIEW_TOO_LONG' | 'MOVIE_ALREADY_EXISTS' | 'INTERNAL_SERVER_ERROR';
+}
+
+// Helper function
+function createAddMovieResponse(
+  success: boolean,
+  messageOrError?: string,
+  errorCode?: AddMovieResponse['errorCode'],
+  movie?: Movie
+): AddMovieResponse {
+  return {
+    success,
+    ...(success && messageOrError && { message: messageOrError }),
+    ...(!success && messageOrError && { error: messageOrError }),
+    ...(errorCode && { errorCode }),
+    ...(movie && { movie })
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Validate body exists and is object
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        createAddMovieResponse(false, 'Invalid request body', 'INVALID_REQUEST_BODY'), 
+        { status: 400 }
+      );
+    }
+    
     const { tmdbMovie }: { tmdbMovie: TMDBMovieData } = body;
 
-    console.log('➕ API /add-movie: Received request to add movie:', {
+    logger.api('/add-movie', 'Received request to add movie:', {
       tmdbId: tmdbMovie?.id,
       title: tmdbMovie?.title,
       overview: tmdbMovie?.overview?.substring(0, 100) + '...',
       releaseDate: tmdbMovie?.release_date
     });
 
+    // Validate required fields
     if (!tmdbMovie || !tmdbMovie.id || !tmdbMovie.title) {
-      console.log('❌ API /add-movie: Invalid movie data provided');
       return NextResponse.json(
-        { error: 'Invalid movie data provided' },
+        createAddMovieResponse(false, 'Invalid movie data provided', 'INVALID_MOVIE_DATA'), 
         { status: 400 }
       );
     }
 
+    // Validate string lengths
+    if (tmdbMovie.title?.length > 500) {
+      return NextResponse.json(
+        createAddMovieResponse(false, 'Title too long (max 500 characters)', 'TITLE_TOO_LONG'), 
+        { status: 400 }
+      );
+    }
+
+    if (tmdbMovie.overview?.length > 5000) {
+      return NextResponse.json(
+        createAddMovieResponse(false, 'Overview too long (max 5000 characters)', 'OVERVIEW_TOO_LONG'), 
+        { status: 400 }
+      );
+    }
     // Check if movie already exists
-    console.log('🔍 API /add-movie: Checking if movie already exists with TMDB ID:', tmdbMovie.id);
+    logger.info('API /add-movie: Checking if movie already exists with TMDB ID:', tmdbMovie.id);
     const { data: existingMovie } = await supabaseServerAnon
       .from('movies')
       .select('id, title')
@@ -41,12 +90,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingMovie) {
-      console.log('❌ API /add-movie: Movie already exists:', existingMovie);
-      return NextResponse.json({
-        success: false,
-        error: 'Movie already exists in database',
-        movie: existingMovie
-      });
+      logger.info('API /add-movie: Movie already exists:', existingMovie);
+      return NextResponse.json(
+        createAddMovieResponse(false, 'Movie already exists in database', 'MOVIE_ALREADY_EXISTS'), 
+        { status: 400 }
+      );   
     }
 
     // Prepare movie data for insertion
@@ -60,7 +108,7 @@ export async function POST(request: NextRequest) {
       // We could fetch additional details from TMDB here if needed
     };
 
-    console.log('💾 API /add-movie: Inserting movie data:', movieData);
+    logger.info('API /add-movie: Inserting movie data:', movieData);
 
     // Insert the movie
     const { data: newMovie, error: insertError } = await supabaseServerAnon
@@ -70,35 +118,38 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error('❌ API /add-movie: Error inserting movie:', insertError);
+      logger.error('API /add-movie: Error inserting movie:', insertError);
       return NextResponse.json(
-        { error: 'Failed to add movie to database' },
+        createAddMovieResponse(false, 'Failed to add movie to database', 'INTERNAL_SERVER_ERROR'), 
         { status: 500 }
       );
     }
 
-    console.log('✅ API /add-movie: Movie inserted successfully:', newMovie);
+    logger.info('API /add-movie: Movie inserted successfully:', newMovie);
 
-    // Optionally fetch additional movie details from TMDB
+    // Enrich in background (don't await) - fire and forget
     if (process.env.TMDB_API_KEY) {
-      try {
-        await enrichMovieData(newMovie.id, tmdbMovie.id);
-      } catch (error) {
-        console.warn('Failed to enrich movie data:', error);
-        // Don't fail the request if enrichment fails
-      }
+      enrichMovieData(newMovie.id, tmdbMovie.id).catch(error => {
+        logger.warn('Failed to enrich movie data:', error);
+      });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `"${tmdbMovie.title}" has been added to your library.`,
-      movie: newMovie
-    });
-
-  } catch (error) {
-    console.error('Add movie API error:', error);
+    // Return response immediately (don't wait for enrichment)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      createAddMovieResponse(true, `"${tmdbMovie.title}" has been added to your library.`, undefined, newMovie)
+    );
+  } catch (error) {
+    // Handle JSON parse errors
+    if (error instanceof SyntaxError) {
+      return NextResponse.json(
+        createAddMovieResponse(false, 'Invalid JSON in request body', 'INVALID_REQUEST_BODY'),
+        { status: 400 }
+      );
+    }
+    
+    logger.error('Add movie API error:', error);
+    return NextResponse.json(
+      createAddMovieResponse(false, 'Internal server error', 'INTERNAL_SERVER_ERROR'), 
       { status: 500 }
     );
   }
@@ -147,6 +198,6 @@ async function enrichMovieData(movieId: number, tmdbId: number) {
       .eq('id', movieId);
 
   } catch (error) {
-    console.warn('Movie enrichment failed:', error);
+    logger.warn('Movie enrichment failed:', error);
   }
 }

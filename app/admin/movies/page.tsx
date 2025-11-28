@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase-client';
 import { Movie } from '@/types/movie';
 import { Database } from '@/types/database';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { useNotification } from '@/hooks/useNotification';
 
 type MovieInsertPayload = Database['public']['Tables']['movies']['Insert'];
 type MovieUpdatePayload = Database['public']['Tables']['movies']['Update'];
@@ -42,7 +43,7 @@ export default function MoviesManagementPage() {
     imdb_id: '',
     tmdb_id: ''
   });
-  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const { notification, showSuccess, showError, setNotification } = useNotification();
 
   // Simple admin check
   const isAdmin = user?.email?.includes('admin') || user?.email === 'testuser02@email.com';
@@ -73,10 +74,8 @@ export default function MoviesManagementPage() {
       setMovies(data || []);
     } catch (error) {
       console.error('Error fetching movies:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to load movies'
-      });
+      showError('Failed to load movies');
+
     } finally {
       setLoading(false);
     }
@@ -86,10 +85,7 @@ export default function MoviesManagementPage() {
     e.preventDefault();
     
     if (!formData.title.trim()) {
-      setNotification({
-        type: 'error',
-        message: 'Movie title is required'
-      });
+      showError('Movie title is required');
       return;
     }
 
@@ -118,10 +114,7 @@ export default function MoviesManagementPage() {
 
         if (error) throw error;
 
-        setNotification({
-          type: 'success',
-          message: 'Movie updated successfully'
-        });
+        showSuccess('Movie updated successfully');
       } else {
         // Create new movie
         const { error } = await supabase
@@ -130,10 +123,7 @@ export default function MoviesManagementPage() {
 
         if (error) throw error;
 
-        setNotification({
-          type: 'success',
-          message: 'Movie created successfully'
-        });
+        showSuccess('Movie created successfully');
       }
 
       // Reset form and refresh data
@@ -141,10 +131,7 @@ export default function MoviesManagementPage() {
       fetchMovies();
     } catch (error) {
       console.error('Error saving movie:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to save movie'
-      });
+      showError('Failed to save movie');
     }
   };
 
@@ -162,18 +149,12 @@ export default function MoviesManagementPage() {
 
       if (error) throw error;
 
-      setNotification({
-        type: 'success',
-        message: 'Movie deleted successfully'
-      });
+      showSuccess('Movie deleted successfully');
       
       fetchMovies();
     } catch (error) {
       console.error('Error deleting movie:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to delete movie'
-      });
+      showError('Failed to delete movie');
     }
   };
 

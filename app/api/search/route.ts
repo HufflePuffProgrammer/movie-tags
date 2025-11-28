@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServerAnon } from '@/lib/supabase-server';
+import { logger } from '@/lib/logger';
+import { TMDB_CONFIG, fetchTMDB } from '@/lib/tmdb-config';
 
 // This will trigger the supabase-server.ts debug logs immediately
-console.log('🚀 API /search route loaded, supabase client ready:', !!supabaseServerAnon);
+if (process.env.NODE_ENV === 'development') {
+  logger.debug('API /search route loaded, supabase client ready:', !!supabaseServerAnon);
+}
 
-// TMDB API configuration
-const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
-const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
-const TMDB_BASE_URL_MOVIES = 'https://api.themoviedb.org/3/search/movie';
-const TMDB_BASE_URL_TV_SHOWS = 'https://api.themoviedb.org/3/search/tv';
+// Constants
+const LOCAL_SEARCH_LIMIT = 10;
+const TMDB_RESULTS_LIMIT = 5;
 interface TMDBMovie {
   id: number;
   title: string;
@@ -19,7 +20,7 @@ interface TMDBMovie {
   vote_average: number;
   genre_ids: number[];
 }
-/* place holder for local movie
+
 interface LocalMovie {
   id: number;
   title: string;
@@ -33,106 +34,106 @@ interface LocalMovie {
   tmdb_id: number | null;
   created_at: string;
 }
-*/
+
+interface SearchResponse {
+  localResults: LocalMovie[];
+  tmdbResults: TMDBMovie[];
+  hasMore: boolean;
+  error?: string;
+  errorCode?: 'QUERY_TOO_SHORT' | 'TMDB_UNAVAILABLE' | 'SERVER_ERROR';
+}
+
+// Helper function
+function createSearchResponse(
+  localResults: LocalMovie[] = [],
+  tmdbResults: TMDBMovie[] = [],
+  hasMore: boolean = false,
+  error?: string,
+  errorCode?: SearchResponse['errorCode']
+): SearchResponse {
+  return {
+    localResults,
+    tmdbResults,
+    hasMore,
+    ...(error && { error }),
+    ...(errorCode && { errorCode })
+  };
+}
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
     const query = searchParams.get('query');
-    console.log('🔍 API /search: Received request with query:', query);
+    logger.api('/search', 'Received request with query:', { query });
     const byLocalResults = searchParams.get('byLocalResults');
     const byMovies = searchParams.get('byMovies');
     const byTVShows = searchParams.get('byTVShows');
 
     if (!byMovies || byMovies.trim().length < 2) {
-      console.log('❌ API /search: byMovies is empty');
+      logger.error('API /search: byMovies is empty');
     }
     if (!byTVShows || byTVShows.trim().length < 2) {
-      console.log('❌ API /search: byTVShows is empty');
+      logger.error('API /search: byTVShows is empty');
     }
     if (!query || query.trim().length < 2) {
-      console.log('❌ API /search: Query too short, returning empty results');
-      return NextResponse.json({ 
-        localResults: [], 
-        tmdbResults: [], 
-        hasMore: false 
-      });
+      logger.error('API /search: Query too short');
+      return NextResponse.json(
+        createSearchResponse([], [], false, 'Query must be at least 2 characters', 'QUERY_TOO_SHORT')
+      );
     }
     //if byLocalResults is true, search local database first
     if (byLocalResults === 'true') {
       // Step 1: Search local database first
+      // Escape special SQL LIKE characters to prevent injection
+      const escapeQuery = (str: string) => str.replace(/[%_]/g, '\\$&');
+      const escapedQuery = escapeQuery(query);
 
       const { data: localMovies, error: localError } = await supabaseServerAnon
         .from('movies')
         .select('*')
-        .or(`title.ilike.%${query}%,overview.ilike.%${query}%,description.ilike.%${query}%,director.ilike.%${query}%`)
+        .or(`title.ilike.%${escapedQuery}%,overview.ilike.%${escapedQuery}%,description.ilike.%${escapedQuery}%,director.ilike.%${escapedQuery}%`)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(LOCAL_SEARCH_LIMIT);
+
 
       if (localError) {
-        console.error('❌ API /search: Local search error:', localError);
+        logger.error('API /search: Local search error:', localError.message);
       }
 
       const localResults = localMovies || [];
-  
-        localResults.map(m => ({ id: m.id, title: m.title, tmdb_id: m.tmdb_id }));
-          
 
-      return NextResponse.json({
-        localResults,
-        tmdbResults: [],
-        hasMore: false
-      });
+      return NextResponse.json(
+        createSearchResponse(localResults, [], false)
+      );
     }
     
 
-    if (!TMDB_API_KEY) {
-      console.error('❌ API /search: TMDB API key not configured');
-      return NextResponse.json({
-        localResults: [],
-        tmdbResults: [],
-        hasMore: false,
-        error: 'External search not available'
-      });
+
+    if (!TMDB_CONFIG.API_KEY) {
+      logger.error('API /search: TMDB API key not configured');
+      return NextResponse.json(
+        createSearchResponse([], [], false, 'External search not available', 'TMDB_UNAVAILABLE')
+      );
     }
+    
+    const endpoint = byTVShows === 'true' && byMovies !== 'true' 
+      ? TMDB_CONFIG.ENDPOINTS.SEARCH_TV 
+      : TMDB_CONFIG.ENDPOINTS.SEARCH_MOVIES;
 
-    let tmdbUrl: string;
-    if (byTVShows === 'true' && byMovies !== 'true') {
-      tmdbUrl = `${TMDB_BASE_URL_TV_SHOWS}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=1`;
+    // fetchTMDB already handles the request and returns parsed JSON
+    const tmdbData = await fetchTMDB<{
+      total_results: number;
+      total_pages: number;
+      results: TMDBMovie[];
+    }>(endpoint, { query, page: '1' });
 
-    } else {
-      tmdbUrl = `${TMDB_BASE_URL_MOVIES}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=1`;
-
-    }
-
-    const tmdbResponse = await fetch(tmdbUrl, {
-        headers: {
-          'Accept': 'application/json',
-        },
-        // Add timeout and error handling
-        signal: AbortSignal.timeout(5000)
-      });
-
-      if (!tmdbResponse.ok) {
-        console.error('❌ API /search: TMDB API error:', tmdbResponse.status, tmdbResponse.statusText);
-        throw new Error(`TMDB API error: ${tmdbResponse.status}`);
-      }
-
-      const tmdbData: {
-        total_results: number;
-        total_pages: number;
-        results?: TMDBMovie[];
-      } = await tmdbResponse.json();
-
-      
-      
-      // Step 4: Filter out movies that already exist in our database
-      const tmdbMovies: TMDBMovie[] = tmdbData.results?.slice(0, 5) || [];
+    // Filter out movies that already exist in our database
+    const tmdbMovies: TMDBMovie[] = tmdbData.results?.slice(0, TMDB_RESULTS_LIMIT) || [];
       
       if (tmdbMovies.length > 0) {
         // Check which TMDB movies already exist in our database
         const tmdbIds = tmdbMovies.map(movie => movie.id);
-        console.log('🔍 API /search: Checking for existing movies with TMDB IDs:', tmdbIds);
+        logger.info('API /search: Checking for existing movies with TMDB IDs:', tmdbIds);
         
         const { data: existingMovies } = await supabaseServerAnon
           .from('movies')
@@ -140,40 +141,33 @@ export async function GET(request: NextRequest) {
           .in('tmdb_id', tmdbIds);
         
         const existingTmdbIds = new Set(existingMovies?.map((m) => m.tmdb_id) || []);
-        console.log('📊 API /search: Found existing TMDB IDs in database:', Array.from(existingTmdbIds));
+        logger.info('API /search: Found existing TMDB IDs in database:', Array.from(existingTmdbIds));
         
         // Filter out movies that already exist
         const filteredTmdbMovies = tmdbMovies.filter(movie => !existingTmdbIds.has(movie.id));
-        console.log('✅ API /search: After filtering duplicates, returning', filteredTmdbMovies.length, 'TMDB movies');
+        logger.info('API /search: After filtering duplicates, returning', filteredTmdbMovies.length, 'TMDB movies');
         
         // Add full poster URLs
         const tmdbResults = filteredTmdbMovies.map(movie => ({
           ...movie,
-          poster_path: movie.poster_path ? `${TMDB_IMAGE_BASE_URL}${movie.poster_path}` : null
+          poster_path: TMDB_CONFIG.buildImageUrl(movie.poster_path)
         }));
 
-        return NextResponse.json({
-          localResults: [],
-          tmdbResults,
-          hasMore: tmdbData.total_pages > 1
-        });
+        return NextResponse.json(
+          createSearchResponse([], tmdbResults, tmdbData.total_pages > 1)
+        );
       }
 
-      return NextResponse.json({
-        localResults: [],
-        tmdbResults: [],
-        hasMore: false
-      });
+      return NextResponse.json(
+        createSearchResponse([], [], false)
+      );
   } catch (error) {
-    console.error('Search API error:', error);
+    logger.error('Search API error:', error);
     
-    // Return partial results if possible
-    return NextResponse.json({
-      localResults: [],
-      tmdbResults: [],
-      hasMore: false,
-      error: 'Search temporarily unavailable'
-    }, { status: 500 });
+    return NextResponse.json(
+      createSearchResponse([], [], false, 'Search temporarily unavailable', 'SERVER_ERROR'),
+      { status: 500 }
+    );
   }
 }
 

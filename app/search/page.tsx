@@ -10,6 +10,7 @@ import SmartMovieSearch from '@/components/SmartMovieSearch';
 import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import { SidebarLink } from '@/components/layout/SidebarNavigation';
 import { useAuth } from '@/contexts/auth-context';
+import { useNotification } from '@/hooks/useNotification';
 
 interface LocalMovie {
   id: number;
@@ -221,7 +222,7 @@ function SearchResultsPageContent() {
   });
   const [loading, setLoading] = useState(false);
   const [addingMovieId, setAddingMovieId] = useState<number | null>(null);
-  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const { notification, showSuccess, showError, setNotification } = useNotification();
 
   useEffect(() => {
 
@@ -275,10 +276,7 @@ function SearchResultsPageContent() {
 
   const handleAddMovie = async (tmdbMovie: TMDBMovie) => {
     if (!user) {
-      setNotification({
-        type: 'error',
-        message: 'Please sign in to add movies'
-      });
+      showError('Please sign in to add movies');
       return;
     }
 
@@ -297,10 +295,7 @@ function SearchResultsPageContent() {
       const data = await response.json();
 
       if (data.success) {
-        setNotification({
-          type: 'success',
-          message: data.message
-        });
+        showSuccess(data.message);
         
         // Remove the added movie from TMDB results and refresh search
         setResults(prev => ({
@@ -319,17 +314,11 @@ function SearchResultsPageContent() {
           500
         );
       } else {
-        setNotification({
-          type: 'error',
-          message: data.error || 'Failed to add movie'
-        });
+        showError(data.error || 'Failed to add movie');
       }
     } catch (error) {
       console.error('❌ SearchResults: Error adding movie:', error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to add movie'
-      });
+      showError('Failed to add movie');
     } finally {
       setAddingMovieId(null);
     }
