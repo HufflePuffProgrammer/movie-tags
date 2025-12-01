@@ -10,6 +10,9 @@ interface MovieGridProps {
   searchQuery: string;
   sortBy: string;
   onSortChange: (sortBy: string) => void;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
 }
 
 export default function MovieGrid({ 
@@ -17,7 +20,10 @@ export default function MovieGrid({
   loading, 
   searchQuery, 
   sortBy, 
-  onSortChange 
+  onSortChange,
+  hasMore = false,
+  onLoadMore,
+  loadingMore = false
 }: MovieGridProps) {
   return (
     <div className="flex-1">
@@ -72,10 +78,21 @@ export default function MovieGrid({
       </div>
 
       {/* Load More */}
-      {!loading && movies.length > 0 && (
+      {!loading && movies.length > 0 && hasMore && onLoadMore && (
         <div className="text-center mt-8">
-          <button className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-50 transition-colors">
-            Load More Movies
+          <button
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingMore ? (
+              <span className="flex items-center gap-2 justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
+                Loading...
+              </span>
+            ) : (
+              'Load More Movies'
+            )}
           </button>
         </div>
       )}
