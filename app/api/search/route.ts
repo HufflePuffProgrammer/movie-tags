@@ -10,7 +10,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Constants
 const LOCAL_SEARCH_LIMIT = 10;
-const TMDB_RESULTS_LIMIT = 5;
+const TMDB_RESULTS_LIMIT = 8;
 interface TMDBMovie {
   id: number;
   title: string;
@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
     const byLocalResults = searchParams.get('byLocalResults');
     const byMovies = searchParams.get('byMovies');
     const byTVShows = searchParams.get('byTVShows');
+    const page = searchParams.get('page') || '1';
 
     if (!byMovies || byMovies.trim().length < 2) {
       logger.error('API /search: byMovies is empty');
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest) {
       total_results: number;
       total_pages: number;
       results: TMDBMovie[];
-    }>(endpoint, { query, page: '1' });
+    }>(endpoint, { query, page });
 
     // Filter out movies that already exist in our database
     const tmdbMovies: TMDBMovie[] = tmdbData.results?.slice(0, TMDB_RESULTS_LIMIT) || [];
@@ -153,8 +154,11 @@ export async function GET(request: NextRequest) {
           poster_path: TMDB_CONFIG.buildImageUrl(movie.poster_path)
         }));
 
+        const currentPage = parseInt(page, 10);
+        const hasMore = currentPage < tmdbData.total_pages;
+        
         return NextResponse.json(
-          createSearchResponse([], tmdbResults, tmdbData.total_pages > 1)
+          createSearchResponse([], tmdbResults, hasMore)
         );
       }
 

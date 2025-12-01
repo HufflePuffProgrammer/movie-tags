@@ -221,17 +221,21 @@ function SearchResultsPageContent() {
     byMovies: false
   });
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [addingMovieId, setAddingMovieId] = useState<number | null>(null);
   const { notification, showSuccess, showError, setNotification } = useNotification();
 
   useEffect(() => {
-
+    // Reset page when search query or filters change
+    setCurrentPage(1);
+    
     if (query.trim().length >= 2) {
       performSearch(query, {
         byLocalResults,
         byMovies: byMoviesParam,
         byTVShows: byTVShowsParam
-      });
+      }, 1);
     }
   }, [query, byLocalResults, byMoviesParam, byTVShowsParam]);
 
@@ -244,34 +248,64 @@ function SearchResultsPageContent() {
 
   const performSearch = async (
     searchQuery: string,
-    filters: { byLocalResults: boolean; byMovies: boolean; byTVShows: boolean }
+    filters: { byLocalResults: boolean; byMovies: boolean; byTVShows: boolean },
+    page: number = 1,
+    append: boolean = false
   ) => {
-    setLoading(true);
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    
     try {
-
       const params = new URLSearchParams({
         query: searchQuery,
         byLocalResults: filters.byLocalResults ? 'true' : 'false',
         byMovies: filters.byMovies ? 'true' : 'false',
-        byTVShows: filters.byTVShows ? 'true' : 'false'
+        byTVShows: filters.byTVShows ? 'true' : 'false',
+        page: page.toString()
       });
       const response = await fetch(`/api/search?${params.toString()}`);
       const data: SearchResults = await response.json();
       
-
-      setResults(data);
+      if (append) {
+        // Append new results to existing ones
+        setResults(prev => ({
+          ...data,
+          localResults: [...prev.localResults, ...data.localResults],
+          tmdbResults: [...prev.tmdbResults, ...data.tmdbResults]
+        }));
+      } else {
+        setResults(data);
+      }
     } catch (error) {
-
-      setResults({ 
-        localResults: [], 
-        tmdbResults: [], 
-        hasMore: false, 
-        byMovies: false,
-        error: 'Search failed' 
-      });
+      if (!append) {
+        setResults({ 
+          localResults: [], 
+          tmdbResults: [], 
+          hasMore: false, 
+          byMovies: false,
+          error: 'Search failed' 
+        });
+      }
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
+  };
+
+  const handleLoadMore = () => {
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    performSearch(query, {
+      byLocalResults,
+      byMovies: byMoviesParam,
+      byTVShows: byTVShowsParam
+    }, nextPage, true);
   };
 
   const handleAddMovie = async (tmdbMovie: TMDBMovie) => {
@@ -310,7 +344,7 @@ function SearchResultsPageContent() {
               byLocalResults,
               byMovies: byMoviesParam,
               byTVShows: byTVShowsParam
-            }),
+            }, 1, false),
           500
         );
       } else {
@@ -399,13 +433,35 @@ function SearchResultsPageContent() {
 
                 {/* TMDB Results */}
                 {results.tmdbResults.length > 0 && (
-                  <TMDBResultsSection
-                    movies={results.tmdbResults}
-                    formatYear={formatYear}
-                    addingMovieId={addingMovieId}
-                    onAddMovie={handleAddMovie}
-                    sectionId="movies"
-                  />
+                  <>
+                    <TMDBResultsSection
+                      movies={results.tmdbResults}
+                      formatYear={formatYear}
+                      addingMovieId={addingMovieId}
+                      onAddMovie={handleAddMovie}
+                      sectionId="movies"
+                    />
+                    
+                    {/* Load More Button */}
+                    {results.hasMore && (
+                      <div className="text-center mt-8">
+                        <button
+                          onClick={handleLoadMore}
+                          disabled={loadingMore}
+                          className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loadingMore ? (
+                            <span className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
+                              Loading...
+                            </span>
+                          ) : (
+                            'Load More Movies'
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Error State */}
