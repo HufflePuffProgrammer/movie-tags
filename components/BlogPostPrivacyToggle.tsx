@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Globe, Lock, Loader2 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@/contexts/auth-context';
@@ -31,13 +31,7 @@ export default function BlogPostPrivacyToggle({
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchBlogPost();
-    }
-  }, [user, movieId]);
-
-  const fetchBlogPost = async () => {
+  const fetchBlogPost = useCallback(async () => {
     if (!user?.id) return;
     
     setLoading(true);
@@ -62,7 +56,13 @@ export default function BlogPostPrivacyToggle({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, movieId]);
+
+  useEffect(() => {
+    if (user) {
+      fetchBlogPost();
+    }
+  }, [user, fetchBlogPost]);
 
   const togglePrivacy = async () => {
     if (!user || !blogPost) return;

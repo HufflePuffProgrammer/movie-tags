@@ -246,7 +246,7 @@ function SearchResultsPageContent() {
       const timer = setTimeout(() => setNotification(null), 3000);
       return () => clearTimeout(timer);
     }
-  }, [notification]);
+  }, [notification, setNotification]);
 
   const performSearch = async (
     searchQuery: string,

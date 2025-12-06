@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Tag, Plus, Edit2, Trash2, Save, X, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
@@ -44,19 +44,7 @@ export default function TagsManagementPage() {
   console.log('Current user email for RLS:', user?.email);
   console.log('Is admin:', isAdmin);
 
-  useEffect(() => {
-    fetchTags();
-    fetchTagUsage();
-  }, []);
-
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => setNotification(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
-
-  const fetchTags = async () => {
+  const fetchTags = useCallback(async () => {
     try {
       setLoading(true);
       const supabase: SupabaseClient<Database> = createClient();
@@ -73,9 +61,9 @@ export default function TagsManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
 
-  const fetchTagUsage = async () => {
+  const fetchTagUsage = useCallback(async () => {
     try {
       const supabase: SupabaseClient<Database> = createClient();
       const { data, error } = await supabase
@@ -96,7 +84,19 @@ export default function TagsManagementPage() {
     } catch (error) {
       console.error('Error fetching tag usage:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchTags();
+    fetchTagUsage();
+  }, [fetchTags, fetchTagUsage]);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification, setNotification]);
 
   const validateTagName = (name: string, excludeId?: number): string | null => {
     const trimmedName = name.trim();
