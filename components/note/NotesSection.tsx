@@ -45,11 +45,11 @@ export default function NotesSection({ notes, onAddNote, onRemoveNote }: NotesSe
           These tags and categories have been added by community members to help analyze this movie&apos;s storytelling elements. Notes are searchable on natural language. Not exact on exact wording.</p>
           <p className="ml-2 text-s text-yellow-600 "> | User Searches | Matches Note (e.g.)
         </p>
-          <p className="ml-5 text-s text-gray-400 italic">"movie with good <b className="text-yellow-600">character</b> development" | "<b className="text-yellow-600">character</b> development is exceptional"
+          <p className="ml-5 text-s text-gray-400 italic">&quotmovie with good <b className="text-yellow-600">character</b> development&quot | &quot<b className="text-yellow-600">character</b> development is exceptional&quot
         </p>
-        <p className="ml-5 text-s text-gray-400 italic">"film with bad <b className="text-yellow-600">dialogue</b>" | "<b className="text-yellow-600">dialogue</b> felt wooden and unnatural"
+        <p className="ml-5 text-s text-gray-400 italic">&quotfilm with bad <b className="text-yellow-600">dialogue</b>&quot | &quot<b className="text-yellow-600">dialogue</b> felt wooden and unnatural&quot
         </p>
-        <p className="ml-5 text-s text-gray-400 italic">"movie with <b className="text-yellow-600">plot twist</b>" | "<b className="text-yellow-600">plot twist</b> in the third act"
+        <p className="ml-5 text-s text-gray-400 italic">&quotmovie with <b className="text-yellow-600">plot twist</b>&quot | &quot<b className="text-yellow-600">plot twist</b> in the third act&quot
         </p>
       </div>
       <div className="space-y-4">

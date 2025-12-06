@@ -6,17 +6,24 @@ import { ArrowLeft, Eye, Calendar, Clock, User } from 'lucide-react';
 import { supabaseServerAnon } from '@/lib/supabase-server';
 
 interface BlogPostPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
+}
+
+interface TagData {
+  id: number;
+  name: string;
+  color: string;
 }
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+  const { slug } = await params;
   const { data: post } = await supabaseServerAnon
     .from('public_blog_posts_view')
     .select('*')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .single();
 
   if (!post) {
@@ -46,11 +53,13 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  const { slug } = await params;
+  
   // Fetch the blog post
   const { data: post, error } = await supabaseServerAnon
     .from('public_blog_posts_view')
     .select('*')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .single();
 
   if (error || !post) {
@@ -61,7 +70,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   supabaseServerAnon
     .from('movie_blog_posts')
     .update({ view_count: post.view_count + 1 })
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .then(() => {});
 
   // Fetch tags for this movie/user combination
@@ -71,7 +80,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     .eq('user_id', post.user_id)
     .eq('movie_id', post.movie_id);
 
-  const movieTags = tags?.map(t => (t.tags as any)).filter(Boolean) || [];
+  const movieTags: TagData[] = tags?.map(t => t.tags as unknown as TagData).filter(Boolean) || [];
 
   // Format date
   const formatDate = (dateString: string | null) => {
