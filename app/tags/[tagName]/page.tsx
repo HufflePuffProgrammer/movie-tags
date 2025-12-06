@@ -7,29 +7,32 @@ import { supabaseServerAnon } from '@/lib/supabase-server';
 import { PublicBlogPost } from '@/types/blog';
 
 interface TagPageProps {
-  params: {
+  params: Promise<{
     tagName: string;
-  };
+  }>;
 }
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: TagPageProps): Promise<Metadata> {
-  const tagName = decodeURIComponent(params.tagName).replace(/-/g, ' ');
+  const { tagName } = await params;
+  const decodedTagName = decodeURIComponent(tagName).replace(/-/g, ' ');
   
   return {
-    title: `Movies Tagged: ${tagName}`,
-    description: `Browse movies tagged with "${tagName}". Discover curated collections from industry professionals.`,
+    title: `Movies Tagged: ${decodedTagName}`,
+    description: `Browse movies tagged with "${decodedTagName}". Discover curated collections from industry professionals.`,
     openGraph: {
-      title: `Movies Tagged: ${tagName}`,
-      description: `Browse movies tagged with "${tagName}". Discover curated collections from industry professionals.`,
+      title: `Movies Tagged: ${decodedTagName}`,
+      description: `Browse movies tagged with "${decodedTagName}". Discover curated collections from industry professionals.`,
       type: 'website',
     },
   };
 }
 
 export default async function TagPage({ params }: TagPageProps) {
+  const { tagName } = await params;
+  
   // Convert URL slug back to tag name (e.g., "good-character" -> "good character")
-  const tagSlug = decodeURIComponent(params.tagName);
+  const tagSlug = decodeURIComponent(tagName);
   
   // First, find the tag by name (case-insensitive)
   const { data: tag, error: tagError } = await supabaseServerAnon

@@ -7,7 +7,11 @@ import { useAuth } from '@/contexts/auth-context';
 import { useMovieData } from '@/hooks/useMovieData';
 import { useUserPersonalization } from '@/hooks/useUserPersonalization';
 import { useBlogPostGeneration } from '@/hooks/useBlogPostGeneration';
+import { Database } from '@/types/database';
 import MovieHeader from '@/components/movie/MovieHeader';
+
+type Tag = Database['public']['Tables']['tags']['Row'];
+type Category = Database['public']['Tables']['categories']['Row'];
 import TagsSection from '@/components/tag/TagsSection';
 import CategoriesSection from '@/components/category/CategoriesSection';
 import NotesSection from '@/components/note/NotesSection';
@@ -38,7 +42,7 @@ export default function MovieDetailPage() {
 
   // Wrapper functions that generate/update blog post after changes
   // generateBlogPost uses upsert: creates if not exists, updates if exists
-  const handleAddTag = async (tag: any) => {
+  const handleAddTag = async (tag: Tag) => {
     await addTag(tag);
     // Generate or update blog post in background
     generateBlogPost(parseInt(movieId)).catch(console.warn);
@@ -49,7 +53,7 @@ export default function MovieDetailPage() {
     generateBlogPost(parseInt(movieId)).catch(console.warn);
   };
 
-  const handleAddCategory = async (category: any) => {
+  const handleAddCategory = async (category: Category) => {
     await addCategory(category);
     generateBlogPost(parseInt(movieId)).catch(console.warn);
   };

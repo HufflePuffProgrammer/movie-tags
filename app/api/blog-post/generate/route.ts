@@ -8,6 +8,38 @@ interface GenerateBlogPostRequest {
   isPublic?: boolean;
 }
 
+interface MovieData {
+  id: number;
+  title: string;
+  release_date: string | null;
+  poster_url: string | null;
+  overview: string | null;
+  director: string | null;
+  runtime_minutes: number | null;
+  genre: string | null;
+  tmdb_id: number | null;
+  imdb_id: string | null;
+}
+
+interface TagData {
+  id: number;
+  name: string;
+  color: string;
+}
+
+interface CategoryData {
+  id: number;
+  name: string;
+  color: string;
+}
+
+interface ExternalLinks {
+  tmdb: string | null;
+  imdb: string | null;
+  metacritic: string | null;
+  rottenTomatoes: string | null;
+}
+
 /**
  * Generates a slug for the blog post
  * Format: movie-title-year-username
@@ -29,7 +61,7 @@ function generateSlug(movieTitle: string, releaseYear: string, username: string)
 /**
  * Generates external movie links
  */
-function generateExternalLinks(tmdbId: number | null, imdbId: string | null) {
+function generateExternalLinks(tmdbId: number | null, imdbId: string | null): ExternalLinks {
   return {
     tmdb: tmdbId ? `https://www.themoviedb.org/movie/${tmdbId}` : null,
     imdb: imdbId ? `https://www.imdb.com/title/${imdbId}` : null,
@@ -44,13 +76,13 @@ function generateExternalLinks(tmdbId: number | null, imdbId: string | null) {
  * Generates HTML content for the blog post
  */
 function generateBlogContent(data: {
-  movie: any;
-  tags: any[];
-  categories: any[];
+  movie: MovieData;
+  tags: TagData[];
+  categories: CategoryData[];
   userNote: string | null;
   userName: string;
   fullName: string;
-  externalLinks: any;
+  externalLinks: ExternalLinks;
 }): { html: string; metaDescription: string } {
   const { movie, tags, categories, userNote, userName, fullName, externalLinks } = data;
   
@@ -248,7 +280,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('movie_id', movieId);
 
-    const tags = userTags?.map(ut => (ut.tags as any)).filter(Boolean) || [];
+    const tags: TagData[] = userTags?.map(ut => ut.tags as unknown as TagData).filter(Boolean) || [];
 
     // 4. Fetch user's categories for this movie
     const { data: userCategories } = await supabase
@@ -257,7 +289,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .eq('movie_id', movieId);
 
-    const categories = userCategories?.map(uc => (uc.categories as any)).filter(Boolean) || [];
+    const categories: CategoryData[] = userCategories?.map(uc => uc.categories as unknown as CategoryData).filter(Boolean) || [];
 
     // 5. Fetch user's note
     const { data: noteData } = await supabase

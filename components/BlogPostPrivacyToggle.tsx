@@ -2,8 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { Globe, Lock, Loader2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase-client';
+import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@/contexts/auth-context';
+import { Database } from '@/types/database';
+
+type BlogPost = Database['public']['Tables']['movie_blog_posts']['Row'];
+
+// Create untyped client to avoid TS issues with newly added tables
+// TODO: Run `supabase gen types typescript` to regenerate full types
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface BlogPostPrivacyToggleProps {
   movieId: number;
@@ -17,10 +27,9 @@ export default function BlogPostPrivacyToggle({
   onUpdate 
 }: BlogPostPrivacyToggleProps) {
   const { user } = useAuth();
-  const [blogPost, setBlogPost] = useState<any>(null);
+  const [blogPost, setBlogPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
     if (user) {
@@ -29,12 +38,14 @@ export default function BlogPostPrivacyToggle({
   }, [user, movieId]);
 
   const fetchBlogPost = async () => {
+    if (!user?.id) return;
+    
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('movie_blog_posts')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .eq('movie_id', movieId)
         .single();
 
@@ -44,7 +55,7 @@ export default function BlogPostPrivacyToggle({
         }
         setBlogPost(null);
       } else {
-        setBlogPost(data);
+        setBlogPost(data as BlogPost);
       }
     } catch (error) {
       console.error('Error fetching blog post:', error);
@@ -62,7 +73,7 @@ export default function BlogPostPrivacyToggle({
 
       const { error } = await supabase
         .from('movie_blog_posts')
-        .update({ is_public: newIsPublic })
+        .update({ is_public: newIsPublic, updated_at: new Date().toISOString() })
         .eq('id', blogPost.id);
 
       if (error) {
