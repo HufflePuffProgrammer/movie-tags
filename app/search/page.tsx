@@ -11,6 +11,7 @@ import SidebarNavigation from '@/components/layout/SidebarNavigation';
 import { SidebarLink } from '@/components/layout/SidebarNavigation';
 import { useAuth } from '@/contexts/auth-context';
 import { useNotification } from '@/hooks/useNotification';
+import { useBlogPostGeneration } from '@/hooks/useBlogPostGeneration';
 
 interface LocalMovie {
   id: number;
@@ -225,6 +226,7 @@ function SearchResultsPageContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [addingMovieId, setAddingMovieId] = useState<number | null>(null);
   const { notification, showSuccess, showError, setNotification } = useNotification();
+  const { generateBlogPost } = useBlogPostGeneration();
 
   useEffect(() => {
     // Reset page when search query or filters change
@@ -330,6 +332,14 @@ function SearchResultsPageContent() {
 
       if (data.success) {
         showSuccess(data.message);
+        
+        // Generate blog post for the newly added movie (fire and forget)
+        if (data.movie?.id) {
+          generateBlogPost(data.movie.id, false).catch(error => {
+            console.warn('Blog post generation failed:', error);
+            // Don't show error to user - this is a background operation
+          });
+        }
         
         // Remove the added movie from TMDB results and refresh search
         setResults(prev => ({

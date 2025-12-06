@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { useMovieData } from '@/hooks/useMovieData';
 import { useUserPersonalization } from '@/hooks/useUserPersonalization';
+import { useBlogPostGeneration } from '@/hooks/useBlogPostGeneration';
 import MovieHeader from '@/components/movie/MovieHeader';
 import TagsSection from '@/components/tag/TagsSection';
 import CategoriesSection from '@/components/category/CategoriesSection';
@@ -32,6 +33,41 @@ export default function MovieDetailPage() {
     addNote,
     removeNote
   } = useUserPersonalization(movieId, user?.id);
+  
+  const { generateBlogPost } = useBlogPostGeneration();
+
+  // Wrapper functions that generate/update blog post after changes
+  // generateBlogPost uses upsert: creates if not exists, updates if exists
+  const handleAddTag = async (tag: any) => {
+    await addTag(tag);
+    // Generate or update blog post in background
+    generateBlogPost(parseInt(movieId)).catch(console.warn);
+  };
+
+  const handleRemoveTag = async (userMovieTagId: number) => {
+    await removeTag(userMovieTagId);
+    generateBlogPost(parseInt(movieId)).catch(console.warn);
+  };
+
+  const handleAddCategory = async (category: any) => {
+    await addCategory(category);
+    generateBlogPost(parseInt(movieId)).catch(console.warn);
+  };
+
+  const handleRemoveCategory = async (userMovieCategoryId: number) => {
+    await removeCategory(userMovieCategoryId);
+    generateBlogPost(parseInt(movieId)).catch(console.warn);
+  };
+
+  const handleAddNote = async (content: string) => {
+    await addNote(content);
+    generateBlogPost(parseInt(movieId)).catch(console.warn);
+  };
+
+  const handleRemoveNote = async (userNoteId: number) => {
+    await removeNote(userNoteId);
+    generateBlogPost(parseInt(movieId)).catch(console.warn);
+  };
 
   if (loading) {
     return (
@@ -94,20 +130,20 @@ export default function MovieDetailPage() {
             
             <TagsSection 
               tags={userTags} 
-              onAddTag={addTag} 
-              onRemoveTag={removeTag} 
+              onAddTag={handleAddTag} 
+              onRemoveTag={handleRemoveTag} 
             />
             
             <CategoriesSection 
               categories={userCategories} 
-              onAddCategory={addCategory} 
-              onRemoveCategory={removeCategory} 
+              onAddCategory={handleAddCategory} 
+              onRemoveCategory={handleRemoveCategory} 
             />
             
             <NotesSection 
               notes={userNotes} 
-              onAddNote={addNote} 
-              onRemoveNote={removeNote} 
+              onAddNote={handleAddNote} 
+              onRemoveNote={handleRemoveNote} 
             />
           </div>
         )}

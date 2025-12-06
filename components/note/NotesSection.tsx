@@ -31,6 +31,7 @@ export default function NotesSection({ notes, onAddNote, onRemoveNote }: NotesSe
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-medium text-gray-800">Personal Notes</h3>
+
         <button
           onClick={() => setShowAddNote(true)}
           className="flex items-center gap-1 text-yellow-600 hover:text-yellow-700 text-sm font-medium"
@@ -39,7 +40,18 @@ export default function NotesSection({ notes, onAddNote, onRemoveNote }: NotesSe
           Add Note
         </button>
       </div>
-      
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <p className="text-s text-gray-800">
+          These tags and categories have been added by community members to help analyze this movie&apos;s storytelling elements. Notes are searchable on natural language. Not exact on exact wording.</p>
+          <p className="ml-2 text-s text-yellow-600 "> | User Searches | Matches Note (e.g.)
+        </p>
+          <p className="ml-5 text-s text-gray-400 italic">"movie with good <b className="text-yellow-600">character</b> development" | "<b className="text-yellow-600">character</b> development is exceptional"
+        </p>
+        <p className="ml-5 text-s text-gray-400 italic">"film with bad <b className="text-yellow-600">dialogue</b>" | "<b className="text-yellow-600">dialogue</b> felt wooden and unnatural"
+        </p>
+        <p className="ml-5 text-s text-gray-400 italic">"movie with <b className="text-yellow-600">plot twist</b>" | "<b className="text-yellow-600">plot twist</b> in the third act"
+        </p>
+      </div>
       <div className="space-y-4">
         {notes.map((note) => (
           <div key={note.id} className="bg-gray-50 rounded-lg p-4 relative">
@@ -62,7 +74,7 @@ export default function NotesSection({ notes, onAddNote, onRemoveNote }: NotesSe
           <textarea
             value={newNote}
             onChange={(e) => setNewNote(e.target.value)}
-            placeholder="Write your personal note about this movie..."
+            placeholder="Write in natural language. Notes should match how people search for this movie..."
             rows={4}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500 text-gray-900"
             autoFocus
@@ -86,7 +98,7 @@ export default function NotesSection({ notes, onAddNote, onRemoveNote }: NotesSe
 
       {notes.length === 0 && !showAddNote && (
         <p className="text-gray-500 text-center py-8 italic">
-          No personal notes yet. Add your thoughts about this movie!
+          Write in natural language. Notes should match how people search for this movie...
         </p>
       )}
     </div>
