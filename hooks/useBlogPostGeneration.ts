@@ -12,7 +12,7 @@ export function useBlogPostGeneration() {
    * 1. A movie is added to the user's library
    * 2. Tags or categories are updated for a movie
    */
-  const generateBlogPost = async (movieId: number, isPublic: boolean = false) => {
+  const generateBlogPost = async (movieId: number, isPublic: boolean = true) => {
     setGenerating(true);
     
     try {
