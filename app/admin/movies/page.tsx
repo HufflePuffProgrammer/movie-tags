@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Film, Plus, Edit2, Trash2, Save, X, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
@@ -48,20 +48,7 @@ export default function MoviesManagementPage() {
   // Simple admin check
   const isAdmin = user?.email?.includes('admin') || user?.email === 'testuser02@email.com';
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchMovies();
-    }
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => setNotification(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
-
-  const fetchMovies = async () => {
+  const fetchMovies = useCallback(async () => {
     try {
       setLoading(true);
       const supabase: SupabaseClient<Database> = createClient();
@@ -79,7 +66,20 @@ export default function MoviesManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchMovies();
+    }
+  }, [isAdmin, fetchMovies]);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification, setNotification]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

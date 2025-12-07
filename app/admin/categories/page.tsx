@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import { useAuth } from '@/contexts/auth-context';
 import Link from 'next/link';
@@ -45,19 +45,7 @@ export default function CategoriesManagementPage() {
   // Simple admin check
   const isAdmin = user?.email?.includes('admin') || user?.email === 'testuser02@email.com';
 
-  useEffect(() => {
-    fetchCategories();
-    fetchCategoryUsage();
-  }, []);
-
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => setNotification(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       const supabase: SupabaseClient<Database> = createClient();
@@ -80,9 +68,9 @@ export default function CategoriesManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
 
-  const fetchCategoryUsage = async () => {
+  const fetchCategoryUsage = useCallback(async () => {
     try {
       const supabase: SupabaseClient<Database> = createClient();
       const { data, error } = await supabase
@@ -104,7 +92,19 @@ export default function CategoriesManagementPage() {
     } catch (error) {
       console.error('Category usage fetch error:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchCategoryUsage();
+  }, [fetchCategories, fetchCategoryUsage]);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification, setNotification]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -285,7 +285,7 @@ export default function SmartMovieSearch({
       const timer = setTimeout(() => setNotification(null), 3000);
       return () => clearTimeout(timer);
     }
-  }, [notification]);
+  }, [notification, setNotification]);
 
   const formatYear = (dateString: string | null) => {
     if (!dateString) return '';
