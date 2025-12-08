@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
-import { Settings, Database, Users, Tag, Film, ArrowLeft } from 'lucide-react';
+import { Settings, Database, Users, Tag, Film, ArrowLeft, FileText } from 'lucide-react';
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -140,6 +140,22 @@ export default function AdminPage() {
                 Add, edit, and manage movie data.
               </p>
               <div className="mt-4 text-yellow-600 text-sm font-medium group-hover:text-yellow-700">
+                Open Tool →
+              </div>
+            </div>
+          </Link>
+
+          {/* Blog Posts Management */}
+          <Link href="/admin/blog-posts" className="group">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-4">
+                <FileText className="w-8 h-8 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-gray-900">Blog Posts</h3>
+              </div>
+              <p className="text-gray-600 text-sm">
+                Manage SEO blog posts, approve/hide content, and view statistics.
+              </p>
+              <div className="mt-4 text-indigo-600 text-sm font-medium group-hover:text-indigo-700">
                 Open Tool →
               </div>
             </div>
