@@ -8,117 +8,154 @@ This guide will help you set up the complete database schema for your CineFind a
 2. Access to your Supabase SQL Editor
 3. Your project's environment variables configured in `.env.local`
 
-## 🚀 Setup Steps
+## 🚀 Quick Setup (Recommended)
 
-### Step 1: Run the Main Schema
+### Run the Complete Schema
 
 1. Open your Supabase project dashboard
 2. Go to the **SQL Editor** (in the left sidebar)
 3. Click **"New Query"**
-4. Copy the entire contents of `schema.sql` and paste it into the editor
+4. Copy the entire contents of **`COMPLETE_SCHEMA.sql`** and paste it into the editor
 5. Click **"Run"** to execute the script
 
-This will create:
-- ✅ All core tables (movies, tags, categories, profiles)
-- ✅ User personalization tables (user_movie_tags, user_movie_categories, user_movie_notes)
+This single file creates everything you need:
+
+- ✅ All core tables (movies, profiles, tags, categories)
+- ✅ User personalization tables (user_movie_tags, user_movie_categories, user_notes, user_tags)
+- ✅ Blog posts table (movie_blog_posts) with SEO features
 - ✅ Database indexes for performance
 - ✅ Row Level Security (RLS) policies
-- ✅ Helpful functions and triggers
-- ✅ Automatic profile creation on user signup
-
-### Step 2: Add Sample Data (Optional)
-
-1. Create another **"New Query"** in the SQL Editor
-2. Copy the contents of `sample-data.sql` and paste it
-3. Click **"Run"** to populate with sample movies, tags, and categories
-
-This will add:
-- 🎬 20 sample movies (mix of recent hits and classics)
-- 🏷️ 19 useful tags (mood, quality, context, personal)
-- 📂 10 movie categories (Action, Comedy, Drama, etc.)
-
-### Step 3: Verify the Setup
-
-Run this query to check your tables:
-
-```sql
--- Check table counts
-SELECT 
-  'movies' as table_name, COUNT(*) as count FROM public.movies
-UNION ALL
-SELECT 'tags' as table_name, COUNT(*) as count FROM public.tags
-UNION ALL
-SELECT 'categories' as table_name, COUNT(*) as count FROM public.categories;
-```
-
-You should see:
-- movies: 20 rows
-- tags: 19 rows  
-- categories: 10 rows
-
-## 🔐 Security Features
-
-### Row Level Security (RLS)
-All user data is protected by RLS policies:
-
-- **user_movie_tags**: Users can only see/modify their own tags
-- **user_movie_categories**: Users can only see/modify their own categories  
-- **user_movie_notes**: Users can only see/modify their own notes
-- **profiles**: Users can only see/modify their own profile
-
-### Public Data
-These tables are readable by everyone (but only admins can modify):
-- **movies**: Public movie catalog
-- **tags**: Available tags for users to choose from
-- **categories**: Available categories for users to choose from
-
-## 🔄 Automatic Features
-
-### Profile Creation
-When a user signs up, a profile is automatically created in the `profiles` table using the trigger `on_auth_user_created`. The profile includes:
-- **display_name**: Required field (defaults to 'User' if not provided)
-- **email**: Cached from auth.users for quick lookups
-- **avatar_url**: Optional profile picture URL
-- **bio**: Optional biography (max 500 characters)
-
-### Timestamp Updates  
-The `updated_at` fields are automatically maintained by database triggers.
-
-### Full-Text Search
-Movies have full-text search capability through the `search_movies()` function.
-
-## 🛠️ Useful Queries
-
-### Search Movies
-```sql
-SELECT * FROM search_movies('batman');
-```
-
-### Get User's Movie Data
-```sql
-SELECT * FROM get_user_movie_data('user-uuid-here', 1);
-```
-
-### Check RLS Policies
-```sql
-SELECT schemaname, tablename, policyname, roles, cmd, qual 
-FROM pg_policies 
-WHERE schemaname = 'public';
-```
+- ✅ Functions and triggers
+- ✅ Public blog posts view
+- ✅ Sample categories and tags
 
 ## 📊 Database Schema Overview
 
 ```
-Core Tables:
-├── movies (public catalog)
-├── tags (admin-curated)  
-├── categories (admin-curated)
-└── profiles (user extensions)
+┌─────────────────────────────────────────────────────────────────┐
+│                        CORE TABLES                              │
+├─────────────────────────────────────────────────────────────────┤
+│  profiles          │ User profiles (extends auth.users)        │
+│  movies            │ Movie/TV show catalog from TMDB           │
+│  categories        │ Admin-curated categories                  │
+│  tags              │ Admin-curated tags for SEO                │
+└─────────────────────────────────────────────────────────────────┘
 
-User Data Tables:
-├── user_movie_tags (many-to-many)
-├── user_movie_categories (one-to-many)
-└── user_movie_notes (one-to-one)
+┌─────────────────────────────────────────────────────────────────┐
+│                    USER DATA TABLES                             │
+├─────────────────────────────────────────────────────────────────┤
+│  user_movie_categories │ User → Category → Movie assignments   │
+│  user_movie_tags       │ User → Tag → Movie assignments        │
+│  user_notes            │ User notes/reviews for movies         │
+│  user_tags             │ Custom user-created tags              │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      BLOG POSTS                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  movie_blog_posts      │ SEO-friendly blog posts               │
+│  public_blog_posts_view│ View for public posts with movie data │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 📁 Schema Files
+
+| File | Description |
+|------|-------------|
+| **`COMPLETE_SCHEMA.sql`** | ⭐ **Run this** - Complete schema with all tables |
+| `complete-schema.sql` | Legacy - Core tables only |
+| `blog-posts-schema.sql` | Blog posts table (included in COMPLETE) |
+| `user-tags-notes-schema.sql` | User tags/notes (included in COMPLETE) |
+
+## 🔐 Security Features
+
+### Row Level Security (RLS)
+
+All user data is protected by RLS policies:
+
+| Table | Policy |
+|-------|--------|
+| `profiles` | Users can only modify their own profile |
+| `user_movie_tags` | Users can only see/modify their own tags |
+| `user_movie_categories` | Users can only see/modify their own categories |
+| `user_notes` | Users can only see/modify their own notes |
+| `user_tags` | Users can only see/modify their own custom tags |
+| `movie_blog_posts` | Users own their posts; public posts visible to all |
+
+### Public Data
+
+| Table | Policy |
+|-------|--------|
+| `movies` | Readable by everyone, writable by authenticated users |
+| `tags` | Readable by everyone, modifiable by admins only |
+| `categories` | Readable by everyone, modifiable by admins only |
+
+### Admin Access
+
+Admins are determined by email pattern:
+- Email contains "admin"
+- Email is `testuser02@email.com`
+
+## 🔄 Automatic Features
+
+### Profile Creation
+When a user signs up, a profile is automatically created via the `on_auth_user_created` trigger.
+
+### Timestamp Updates
+`updated_at` fields are automatically maintained by database triggers.
+
+### Blog Post Published Date
+When `is_public` changes from `false` to `true`, `published_at` is automatically set.
+
+### Full-Text Search
+Movies have a full-text search index on title, overview, and description.
+
+## 📝 Key Tables Detail
+
+### movies
+```sql
+id, title, description, release_date, poster_url, genre,
+director, runtime_minutes, imdb_id, tmdb_id, overview,
+created_at, updated_at
+```
+
+### movie_blog_posts
+```sql
+id, user_id, movie_id, slug, title, content, meta_description,
+is_public, admin_approved, view_count, published_at,
+created_at, updated_at
+```
+
+### tags
+```sql
+id, name, description, color, created_at, updated_at
+```
+
+### categories
+```sql
+id, name, description, color, created_at, updated_at
+```
+
+## 🛠️ Useful Queries
+
+### Check Table Counts
+```sql
+SELECT 'movies' as table_name, COUNT(*) FROM public.movies
+UNION ALL SELECT 'tags', COUNT(*) FROM public.tags
+UNION ALL SELECT 'categories', COUNT(*) FROM public.categories
+UNION ALL SELECT 'movie_blog_posts', COUNT(*) FROM public.movie_blog_posts;
+```
+
+### Check RLS Policies
+```sql
+SELECT tablename, policyname, cmd, qual 
+FROM pg_policies 
+WHERE schemaname = 'public';
+```
+
+### View Public Blog Posts
+```sql
+SELECT * FROM public.public_blog_posts_view;
 ```
 
 ## 🔧 Troubleshooting
@@ -126,45 +163,35 @@ User Data Tables:
 ### Common Issues
 
 **Error: "relation does not exist"**
-- Make sure you ran `schema.sql` first before `sample-data.sql`
+- Make sure you ran `COMPLETE_SCHEMA.sql` first
 
-**Error: "permission denied"**  
+**Error: "permission denied"**
 - Check that RLS policies are correctly applied
 - Verify you're using the correct user UUID
 
-**No data showing for authenticated users**
-- Check that `auth.uid()` returns the expected UUID
-- Verify the user has actually created tags/categories/notes
+**Blog posts not showing in public view**
+- Check that `is_public = true` AND `admin_approved = true`
 
 ### Checking User Authentication
 ```sql
-SELECT auth.uid(); -- Should return your user UUID when authenticated
+SELECT auth.uid(); -- Returns your user UUID when authenticated
 ```
 
-### Manual Profile Creation
-If automatic profile creation isn't working:
-```sql
-INSERT INTO public.profiles (id, display_name) 
-VALUES (auth.uid(), 'Your Display Name');
-```
-
-## 🎯 Next Steps
-
-After setting up the database:
+## 🚀 After Setup
 
 1. ✅ Test user registration and automatic profile creation
-2. ✅ Try adding some personal tags to movies  
-3. ✅ Test the search functionality
-4. ✅ Verify RLS is working by trying to access other users' data
-5. ✅ Start building your API endpoints to interact with this data
+2. ✅ Add a movie from search and verify it appears in the database
+3. ✅ Add tags/categories to a movie
+4. ✅ Verify blog post is generated at `/blog/[slug]`
+5. ✅ Check sitemap at `/sitemap.xml`
+6. ✅ Test admin pages at `/admin`
 
-## 📝 Schema Modifications
+## 📝 TypeScript Types
 
-If you need to modify the schema later:
+After modifying the schema, regenerate TypeScript types:
 
-1. Always backup your data first
-2. Test changes on a development database
-3. Use migrations for production changes
-4. Update the TypeScript types in `types/database.ts`
+```bash
+npx supabase gen types typescript --project-id YOUR_PROJECT_ID > types/database.ts
+```
 
-The schema is designed to be flexible and scalable for your movie tagging application!
+The schema is designed to be SEO-friendly and scalable for your movie tagging application!

@@ -117,19 +117,48 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    const endpoint = byTVShows === 'true' && byMovies !== 'true' 
+    const isTVSearch = byTVShows === 'true' && byMovies !== 'true';
+    const endpoint = isTVSearch 
       ? TMDB_CONFIG.ENDPOINTS.SEARCH_TV 
       : TMDB_CONFIG.ENDPOINTS.SEARCH_MOVIES;
 
     // fetchTMDB already handles the request and returns parsed JSON
+    // TV shows have different field names: name (instead of title), first_air_date (instead of release_date)
+    interface TMDBTVShow {
+      id: number;
+      name: string;  // TV shows use 'name' instead of 'title'
+      overview: string;
+      first_air_date: string;  // TV shows use 'first_air_date' instead of 'release_date'
+      poster_path: string | null;
+      vote_average: number;
+      genre_ids: number[];
+    }
+
     const tmdbData = await fetchTMDB<{
       total_results: number;
       total_pages: number;
-      results: TMDBMovie[];
+      results: (TMDBMovie | TMDBTVShow)[];
     }>(endpoint, { query, page });
 
+    // Normalize TV show responses to use the same field names as movies
+    const normalizedResults = tmdbData.results?.slice(0, TMDB_RESULTS_LIMIT).map(item => {
+      if (isTVSearch) {
+        const tvShow = item as TMDBTVShow;
+        return {
+          id: tvShow.id,
+          title: tvShow.name,  // Map 'name' to 'title'
+          overview: tvShow.overview,
+          release_date: tvShow.first_air_date,  // Map 'first_air_date' to 'release_date'
+          poster_path: tvShow.poster_path,
+          vote_average: tvShow.vote_average,
+          genre_ids: tvShow.genre_ids,
+        } as TMDBMovie;
+      }
+      return item as TMDBMovie;
+    }) || [];
+
     // Filter out movies that already exist in our database
-    const tmdbMovies: TMDBMovie[] = tmdbData.results?.slice(0, TMDB_RESULTS_LIMIT) || [];
+    const tmdbMovies: TMDBMovie[] = normalizedResults;
       
       if (tmdbMovies.length > 0) {
         // Check which TMDB movies already exist in our database

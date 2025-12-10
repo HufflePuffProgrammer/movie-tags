@@ -40,10 +40,22 @@ function createAddMovieResponse(
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      logger.error('API /add-movie: Failed to parse JSON body:', parseError);
+      return NextResponse.json(
+        createAddMovieResponse(false, 'Invalid JSON in request body', 'INVALID_REQUEST_BODY'), 
+        { status: 400 }
+      );
+    }
+
+    logger.info('API /add-movie: Received body:', JSON.stringify(body));
 
     // Validate body exists and is object
     if (!body || typeof body !== 'object') {
+      logger.error('API /add-movie: Body is not an object:', typeof body);
       return NextResponse.json(
         createAddMovieResponse(false, 'Invalid request body', 'INVALID_REQUEST_BODY'), 
         { status: 400 }
@@ -52,17 +64,26 @@ export async function POST(request: NextRequest) {
     
     const { tmdbMovie }: { tmdbMovie: TMDBMovieData } = body;
 
-    logger.api('/add-movie', 'Received request to add movie:', {
+    logger.info('API /add-movie: Received request to add movie:', {
       tmdbId: tmdbMovie?.id,
       title: tmdbMovie?.title,
-      overview: tmdbMovie?.overview?.substring(0, 100) + '...',
+      hasPosterPath: !!tmdbMovie?.poster_path,
       releaseDate: tmdbMovie?.release_date
     });
 
     // Validate required fields
-    if (!tmdbMovie || !tmdbMovie.id || !tmdbMovie.title) {
+    if (!tmdbMovie) {
+      logger.error('API /add-movie: tmdbMovie is missing from body');
       return NextResponse.json(
-        createAddMovieResponse(false, 'Invalid movie data provided', 'INVALID_MOVIE_DATA'), 
+        createAddMovieResponse(false, 'Missing tmdbMovie in request body', 'INVALID_MOVIE_DATA'), 
+        { status: 400 }
+      );
+    }
+
+    if (!tmdbMovie.id || !tmdbMovie.title) {
+      logger.error('API /add-movie: Missing required fields:', { id: tmdbMovie.id, title: tmdbMovie.title });
+      return NextResponse.json(
+        createAddMovieResponse(false, 'Invalid movie data - missing id or title', 'INVALID_MOVIE_DATA'), 
         { status: 400 }
       );
     }
@@ -92,8 +113,8 @@ export async function POST(request: NextRequest) {
     if (existingMovie) {
       logger.info('API /add-movie: Movie already exists:', existingMovie);
       return NextResponse.json(
-        createAddMovieResponse(false, 'Movie already exists in database', 'MOVIE_ALREADY_EXISTS'), 
-        { status: 400 }
+        createAddMovieResponse(false, `"${existingMovie.title}" already exists in your library`, 'MOVIE_ALREADY_EXISTS'), 
+        { status: 409 }  // 409 Conflict is more appropriate for "already exists"
       );   
     }
 
