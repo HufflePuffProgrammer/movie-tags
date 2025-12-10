@@ -43,13 +43,13 @@ export default function NotesSection({ notes, onAddNote, onRemoveNote }: NotesSe
       <div className="mt-4 pt-4 border-t border-gray-200">
         <p className="text-s text-gray-800">
           These tags and categories have been added by community members to help analyze this movie&apos;s storytelling elements. Notes are searchable on natural language. Not exact on exact wording.</p>
-          <p className="ml-2 text-s text-yellow-600 "> | User Searches | Matches Note (e.g.)
+          <p className="ml-2 text-s text-yellow-600 ">  User Searches | Matches Note 
         </p>
-          <p className="ml-5 text-s text-gray-400 italic">&quote;movie with good <b className="text-yellow-600">character</b> development&quote; | &quot<b className="text-yellow-600">character</b> development is exceptional&quote;
+          <p className="ml-5 text-s text-gray-300 italic">'movie with good <b className="text-yellow-500">character</b> development' | '<b className="text-yellow-500">character</b> development is exceptional'
         </p>
-        <p className="ml-5 text-s text-gray-400 italic">&quote;film with bad <b className="text-yellow-600">dialogue</b>&quote; | &quot; <b className="text-yellow-600">dialogue</b> felt wooden and unnatural&quote;
+        <p className="ml-5 text-s text-gray-300 italic">'film with bad <b className="text-yellow-500">dialogue</b>' | '<b className="text-yellow-500">dialogue</b> felt wooden and unnatural'
         </p>
-        <p className="ml-5 text-s text-gray-400 italic">&quote;movie with <b className="text-yellow-600">plot twist</b>&quote; | &quot; <b className="text-yellow-600">plot twist</b> in the third act&quote;
+        <p className="ml-5 text-s text-gray-300 italic">'movie with <b className="text-yellow-500">plot twist</b>' | '<b className="text-yellow-500">plot twist</b> in the third act'
         </p>
       </div>
       <div className="space-y-4">
@@ -61,6 +61,7 @@ export default function NotesSection({ notes, onAddNote, onRemoveNote }: NotesSe
             >
               <X className="w-4 h-4" />
             </button>
+            <br></br>
             <p className="text-gray-700 pr-8">{note.content}</p>
             <p className="text-xs text-gray-500 mt-2">
               {new Date(note.created_at).toLocaleDateString()}
