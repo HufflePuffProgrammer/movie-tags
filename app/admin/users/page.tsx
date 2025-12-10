@@ -27,12 +27,6 @@ export default function UsersManagementPage() {
   // Simple admin check
   const isAdmin = user?.email?.includes('admin') || user?.email === 'testuser02@email.com';
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchUsers();
-    }
-  }, [isAdmin]);
-
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -94,6 +88,13 @@ export default function UsersManagementPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchUsers();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
 
   const filteredUsers = users.filter(user => 
     user.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||

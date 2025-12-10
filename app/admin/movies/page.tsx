@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Film, Plus, Edit2, Trash2, Save, X, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
@@ -48,7 +48,7 @@ export default function MoviesManagementPage() {
   // Simple admin check
   const isAdmin = user?.email?.includes('admin') || user?.email === 'testuser02@email.com';
 
-  const fetchMovies = useCallback(async () => {
+  const fetchMovies = async () => {
     try {
       setLoading(true);
       const supabase: SupabaseClient<Database> = createClient();
@@ -61,18 +61,17 @@ export default function MoviesManagementPage() {
       setMovies(data || []);
     } catch (error) {
       console.error('Error fetching movies:', error);
-      showError('Failed to load movies');
-
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  };
 
   useEffect(() => {
     if (isAdmin) {
       fetchMovies();
     }
-  }, [isAdmin, fetchMovies]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
 
   useEffect(() => {
     if (notification) {
