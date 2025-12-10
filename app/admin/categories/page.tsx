@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase-client';
 import { useAuth } from '@/contexts/auth-context';
 import Link from 'next/link';
@@ -45,7 +45,7 @@ export default function CategoriesManagementPage() {
   // Simple admin check
   const isAdmin = user?.email?.includes('admin') || user?.email === 'testuser02@email.com';
 
-  const fetchCategories = useCallback(async () => {
+  const fetchCategories = async () => {
     try {
       setLoading(true);
       const supabase: SupabaseClient<Database> = createClient();
@@ -56,21 +56,17 @@ export default function CategoriesManagementPage() {
 
       if (error) {
         console.error('Error fetching categories:', error);
-        showError('Failed to load categories');
-
       } else {
         setCategories(data || []);
       }
     } catch (error) {
       console.error('Categories fetch error:', error);
-      showError('Failed to load categories');
-
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  };
 
-  const fetchCategoryUsage = useCallback(async () => {
+  const fetchCategoryUsage = async () => {
     try {
       const supabase: SupabaseClient<Database> = createClient();
       const { data, error } = await supabase
@@ -92,12 +88,13 @@ export default function CategoriesManagementPage() {
     } catch (error) {
       console.error('Category usage fetch error:', error);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchCategories();
     fetchCategoryUsage();
-  }, [fetchCategories, fetchCategoryUsage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (notification) {
